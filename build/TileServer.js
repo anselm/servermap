@@ -9,8 +9,6 @@ var _cesium = _interopRequireDefault(require("cesium"));
 
 var _ImageServer = _interopRequireDefault(require("./ImageServer.js"));
 
-var _threeGltfExporter = _interopRequireDefault(require("three-gltf-exporter"));
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -19,10 +17,11 @@ function _defineProperties(target, props) { for (var i = 0; i < props.length; i+
 
 function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
 
-_cesium.default.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI4YzI5OGVlNy1jOWY2LTRjNmEtYWYzMC1iNzhkZDhkZmEwOWEiLCJpZCI6MTM2MCwiaWF0IjoxNTI4MTQ0MDMyfQ.itVtUPeeXb7dasKXTUYZ6r3Hbm7OVUoA26ahLaVyj5I';
+_cesium.default.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI4YzI5OGVlNy1jOWY2LTRjNmEtYWYzMC1iNzhkZDhkZmEwOWEiLCJpZCI6MTM2MCwiaWF0IjoxNTI4MTQ0MDMyfQ.itVtUPeeXb7dasKXTUYZ6r3Hbm7OVUoA26ahLaVyj5I'; ////////////////////////////////////////////////////////////////////////////////////
+// TileServer 
+////////////////////////////////////////////////////////////////////////////////////
 
-var THREE = require('three'); //var exporter = new THREE.GLTFExporter();
-
+var THREE = require('three');
 
 ///
 /// TileServer
@@ -401,25 +400,10 @@ function () {
               console.log("getting tile");
 
               _cesium.default.when(_this.terrainProvider.requestTileGeometry(scheme.xtile, scheme.ytile, scheme.lod), function (tile) {
-                console.log("got tile");
                 scheme.tile = tile;
                 scheme.geometry = _this.toGeometry(scheme); // this.toGeometryIdealized(scheme);
 
                 scheme.mesh = new THREE.Mesh(scheme.geometry, scheme.material);
-                console.log("done making a mesh");
-
-                try {
-                  var gltf = new _threeGltfExporter.default();
-                  gltf.parse(scheme.mesh, function (result) {
-                    console.log("done making mesh gltf");
-                    var output = JSON.stringify(result, null, 2);
-                    console.log(output);
-                  });
-                } catch (e) {
-                  console.error(e);
-                }
-
-                console.log("past trying to export a mesh to gltf");
                 callback(scheme);
               });
             });

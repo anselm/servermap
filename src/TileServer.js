@@ -1,35 +1,3 @@
-
-////////////////////////////////////////////////////////////////////////////////////////
-// Forge support for canvas and a few basic services so that the THREE module works
-////////////////////////////////////////////////////////////////////////////////////////
-
-// https://discourse.threejs.org/t/nodejs-threejs-gltfexporter-server-side-blob-issue/4040/5
-
-const THREE = require('three');
-const Canvas = require('canvas');
-
-const { Blob,FileReader } = require('vblob');
-
-/*
-// Patch global scope to imitate browser environment.
-global.window = global;
-global.Blob = Blob;
-global.FileReader = FileReader;
-global.THREE = THREE;
-global.document = {
-  createElement: (nodeName) => {
-    if (nodeName !== 'canvas') throw new Error(`Cannot create node ${nodeName}`);
-    const canvas = new Canvas(256, 256);
-    // This isn't working — currently need to avoid toBlob(), so export to embedded .gltf not .glb.
-    // canvas.toBlob = function () {
-    //   return new Blob([this.toBuffer()]);
-    // };
-    return canvas;
-  }
-};
-
-*/
-
 ////////////////////////////////////////////////////////////////////////////////////
 // Cesium
 ////////////////////////////////////////////////////////////////////////////////////
@@ -42,10 +10,9 @@ Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOi
 // TileServer 
 ////////////////////////////////////////////////////////////////////////////////////
 
-import ImageServer from './ImageServer.js';
+const THREE = require('three');
 
-//var exporter = new THREE.GLTFExporter();
-import GLTFExporter from 'three-gltf-exporter';
+import ImageServer from './ImageServer.js';
 
 ///
 /// TileServer
@@ -54,6 +21,7 @@ import GLTFExporter from 'three-gltf-exporter';
 /// The philosophy here is that if you want to implement a different data source then you write a separate class.
 /// TODO change this to an aframe-system
 /// TODO ellipsoid is spherical and should be oblate
+///
 
 class TileServer  {
 
@@ -430,25 +398,9 @@ class TileServer  {
             scheme.material = material2;
             console.log("getting tile")
             Cesium.when(this.terrainProvider.requestTileGeometry(scheme.xtile,scheme.ytile,scheme.lod),tile => {
-              console.log("got tile")
               scheme.tile = tile;
               scheme.geometry = this.toGeometry(scheme); // this.toGeometryIdealized(scheme);
               scheme.mesh = new THREE.Mesh(scheme.geometry,scheme.material);
-              console.log("done making a mesh")
-if(scheme.mesh) console.log("there appears to be a mesh")
-try {
-let gltf = new GLTFExporter()
-gltf.parse( scheme.mesh, function( result ) {
-  console.log("done making mesh gltf")
-  var output = JSON.stringify( result, null, 2 );
-  console.log( output );
-});
-} catch(e) {
-console.error(e)
-}
-console.log("past trying to export a mesh to gltf")
-
-
               callback(scheme);
             });
           });
