@@ -30,6 +30,7 @@ var THREE = require('three');
 /// The philosophy here is that if you want to implement a different data source then you write a separate class.
 /// TODO change this to an aframe-system
 /// TODO ellipsoid is spherical and should be oblate
+///
 var TileServer =
 /*#__PURE__*/
 function () {
