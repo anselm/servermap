@@ -14,10 +14,10 @@ const Canvas = require('canvas');
 const { Blob,FileReader } = require('vblob');
 import GLTFExporter from 'three-gltf-exporter';
 
-async function gltf_export(geometry,material) {
+async function gltf_export(scene) {
 
   // Munge the global namespace
-  // however this has to occur after Cesium is done - something in Cesium looks for 'document' and behaves badly
+  // this has to occur AFTER Cesium is done - something in Cesium looks for 'document' and behaves badly
   global.window = global;
   global.Blob = Blob;
   global.FileReader = FileReader;
@@ -33,34 +33,34 @@ async function gltf_export(geometry,material) {
     return canvas;
   }
 
-  // work around a bug in the gltf exporter - the geometry needs userData to not be undefined
-  // pre-process some of the expectations so that we can then set user data ....
-  if(!geometry.isBufferGeometry ) {
-    var geometryTemp = new THREE.BufferGeometry();
-    geometryTemp.fromGeometry( geometry );
-    geometry = geometryTemp
-  }
+  // rewrite all geometry for two bugs in exporter:
+  // 1) exporer needs geometry userData to not be undefined
+  // 2) can only deal with buffer geometry
+  scene.traverse(node => {
+    if (node instanceof THREE.Mesh ) {
+      if(!node.geometry.isBufferGeometry ) {
+        var geometryTemp = new THREE.BufferGeometry()
+        geometryTemp.fromGeometry( node.geometry )
+        node.geometry = geometryTemp
+      }
+      node.geometry.userData = {}
+    }
+  })
 
-  // Work around another bug in gltf exporter - userData has to be not undefined
-  geometry.userData = {}
-
-  // make a mesh out of this
-  let mesh = new THREE.Mesh(geometry,material);
-
-  // helper to synchronously generate a string representing the gtlf
-
-  function gltfParsePromise(mesh) {
+  // wrap promise around exporter
+  function gltfParsePromise(scene) {
     return new Promise(function(resolve,reject) {
       let gltf = new GLTFExporter()
-      gltf.parse(mesh,function(result) {
+      gltf.parse(scene,function(result) {
         resolve(result)
       })
     })
   }
 
-  // return string to caller
-  let result = await gltfParsePromise(mesh)
+  // get gltf as a string
+  let result = await gltfParsePromise(scene)
 
+  // return gltf
   return result
 }
 
@@ -71,13 +71,15 @@ async function gltf_export(geometry,material) {
 import TileServer from './TileServer.js';
 
 let data = {
-             lat: 37.7983222,
-             lon: -122.3972797,
-             lod: 15,                 // desired level of detail - will compute itself if not specified
+             //lat: 37.7983222,
+             lat: 36.1069652,
+             //lon: -122.3972797,
+             lon: -112.1129972,
+             lod: 14,                 // desired level of detail - will compute itself if not specified
          stretch: 1,                  // how much to stetch space vertically
-         padding: 0,                  // how many extra tiles to fetch around area of interest
-       elevation: 0,
-          radius: 6372798.2,
+         padding: 1,                  // how many extra tiles to fetch around area of interest
+       elevation: 1,
+          radius: 100000, // 6372798.2,
     world_radius: 6372798.2,
              url: "https://assets.agi.com/stk-terrain/v1/tilesets/world/tiles",
          project: 0,
@@ -92,11 +94,11 @@ async function test() {
   // start a tile server
   let tileServer = await new TileServer()
 
-  // get some tiles
-  let results = await tileServer.produceManyTiles(data)
+  // get a 3js collection of some kind that contains 3js meshes
+  let scene = await tileServer.produceManyTiles(data)
 
   // make a gltf
-  let gltf = await gltf_export(results.geometry,results.material)
+  let gltf = await gltf_export(scene)
 
   // turn it into a string
   let str = JSON.stringify( gltf, null, 2 );
@@ -104,6 +106,7 @@ async function test() {
   // dump it to fs
   fs.writeFileSync("test.gltf",str)
 
+  console.log("saved file as test.gltf")
 }
 
 test()

@@ -162,7 +162,7 @@ class ImageServer {
     let promises = [];
     for(let i = Math.floor(ty1);i<=Math.floor(ty2);i++) {
       let p = this.imageProvider.requestImage(tx1,i,scheme.lod+1);
-      console.log("ImageServer: pushing an image promise to load at tile xy = " + tx1 + " " + i )
+      console.log("ImageServer: pushing an image promise to load at tile xy = " + tx1 + " " + i + " over range " + Math.floor(ty1) + " to " + Math.floor(ty2) )
       promises.push(p);
     }
 

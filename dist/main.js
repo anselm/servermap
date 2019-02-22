@@ -26,7 +26,7 @@ var _require = require('vblob'),
     Blob = _require.Blob,
     FileReader = _require.FileReader;
 
-function gltf_export(_x, _x2) {
+function gltf_export(_x) {
   return _gltf_export.apply(this, arguments);
 } ////////////////////////////////////////////////////////////////////////
 // a hardcoded example query
@@ -36,23 +36,23 @@ function gltf_export(_x, _x2) {
 function _gltf_export() {
   _gltf_export = _asyncToGenerator(
   /*#__PURE__*/
-  regeneratorRuntime.mark(function _callee(geometry, material) {
-    var geometryTemp, mesh, gltfParsePromise, result;
+  regeneratorRuntime.mark(function _callee(scene) {
+    var gltfParsePromise, result;
     return regeneratorRuntime.wrap(function _callee$(_context) {
       while (1) {
         switch (_context.prev = _context.next) {
           case 0:
-            gltfParsePromise = function _ref(mesh) {
+            gltfParsePromise = function _ref(scene) {
               return new Promise(function (resolve, reject) {
                 var gltf = new _threeGltfExporter.default();
-                gltf.parse(mesh, function (result) {
+                gltf.parse(scene, function (result) {
                   resolve(result);
                 });
               });
             };
 
             // Munge the global namespace
-            // however this has to occur after Cesium is done - something in Cesium looks for 'document' and behaves badly
+            // this has to occur AFTER Cesium is done - something in Cesium looks for 'document' and behaves badly
             global.window = global;
             global.Blob = Blob;
             global.FileReader = FileReader;
@@ -67,29 +67,31 @@ function _gltf_export() {
               // };
 
               return canvas;
-            }; // work around a bug in the gltf exporter - the geometry needs userData to not be undefined
-            // pre-process some of the expectations so that we can then set user data ....
+            }; // rewrite all geometry for two bugs in exporter:
+            // 1) exporer needs geometry userData to not be undefined
+            // 2) can only deal with buffer geometry
 
 
-            if (!geometry.isBufferGeometry) {
-              geometryTemp = new THREE.BufferGeometry();
-              geometryTemp.fromGeometry(geometry);
-              geometry = geometryTemp;
-            } // Work around another bug in gltf exporter - userData has to be not undefined
+            scene.traverse(function (node) {
+              if (node instanceof THREE.Mesh) {
+                if (!node.geometry.isBufferGeometry) {
+                  var geometryTemp = new THREE.BufferGeometry();
+                  geometryTemp.fromGeometry(node.geometry);
+                  node.geometry = geometryTemp;
+                }
 
+                node.geometry.userData = {};
+              }
+            }); // wrap promise around exporter
 
-            geometry.userData = {}; // make a mesh out of this
+            _context.next = 10;
+            return gltfParsePromise(scene);
 
-            mesh = new THREE.Mesh(geometry, material); // helper to synchronously generate a string representing the gtlf
-
-            _context.next = 12;
-            return gltfParsePromise(mesh);
-
-          case 12:
+          case 10:
             result = _context.sent;
             return _context.abrupt("return", result);
 
-          case 14:
+          case 12:
           case "end":
             return _context.stop();
         }
@@ -100,16 +102,19 @@ function _gltf_export() {
 }
 
 var data = {
-  lat: 37.7983222,
-  lon: -122.3972797,
-  lod: 15,
+  //lat: 37.7983222,
+  lat: 36.1069652,
+  //lon: -122.3972797,
+  lon: -112.1129972,
+  lod: 14,
   // desired level of detail - will compute itself if not specified
   stretch: 1,
   // how much to stetch space vertically
-  padding: 0,
+  padding: 1,
   // how many extra tiles to fetch around area of interest
-  elevation: 0,
-  radius: 6372798.2,
+  elevation: 1,
+  radius: 100000,
+  // 6372798.2,
   world_radius: 6372798.2,
   url: "https://assets.agi.com/stk-terrain/v1/tilesets/world/tiles",
   project: 0,
@@ -127,7 +132,7 @@ function _test() {
   _test = _asyncToGenerator(
   /*#__PURE__*/
   regeneratorRuntime.mark(function _callee2() {
-    var tileServer, results, gltf, str;
+    var tileServer, scene, gltf, str;
     return regeneratorRuntime.wrap(function _callee2$(_context2) {
       while (1) {
         switch (_context2.prev = _context2.next) {
@@ -141,9 +146,9 @@ function _test() {
             return tileServer.produceManyTiles(data);
 
           case 5:
-            results = _context2.sent;
+            scene = _context2.sent;
             _context2.next = 8;
-            return gltf_export(results.geometry, results.material);
+            return gltf_export(scene);
 
           case 8:
             gltf = _context2.sent;
@@ -152,7 +157,9 @@ function _test() {
 
             _fs.default.writeFileSync("test.gltf", str);
 
-          case 11:
+            console.log("saved file as test.gltf");
+
+          case 12:
           case "end":
             return _context2.stop();
         }

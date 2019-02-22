@@ -400,7 +400,6 @@ class TileServer  {
       //q.setFromAxisAngle( new THREE.Vector3(1,0,0), THREE.Math.degToRad(data.lat) ); // <- if you wanted lat,lon just facing you if you were at 0,0,1
       group.quaternion.premultiply(q);
     }
-
     // translate root to 0,0,0 in model coordinates (this is overridden by below)
     if(true) {
       let height = data.radius * data.elevation * data.stretch / data.world_radius + data.radius;
@@ -449,9 +448,8 @@ class TileServer  {
         while(scratch.lat < -90) scratch.lat += 180;
         while(scratch.lat >= 90) scratch.lat -= 180;
         let tile = await this.produceTile(scratch)
-        console.log("produced a tile")
-return tile.mesh // TEST
-        console.log(tile)
+        console.log("produced a tile at " + scratch.lat + " " + scratch.lon)
+        this._project(tile)
         group.add(tile.mesh)
       }
     }
@@ -459,6 +457,24 @@ return tile.mesh // TEST
     // return tiles in a threejs group
     return group
   }
+
+  _project(scheme) {
+    // translate to surface of sphere
+    let offset = this.ll2v(scheme.rect.south, //+scheme.degrees_latrad/2,
+                           scheme.rect.west, //+scheme.degrees_lonrad/2,
+                           scheme.radius );
+    scheme.mesh.position.set(offset.x,offset.y,offset.z);
+
+    // rotate to correct latitude
+    let q = new THREE.Quaternion();
+    q.setFromAxisAngle( new THREE.Vector3(1,0,0), -scheme.rect.south); //-scheme.degrees_latrad/2 );
+    scheme.mesh.quaternion.premultiply(q);
+
+    // rotate to correct longitude
+    q.setFromAxisAngle( new THREE.Vector3(0,1,0), scheme.rect.west); //+scheme.degrees_lonrad/2 );
+    scheme.mesh.quaternion.premultiply(q);
+  }
+
 }
 
 // es6 glue

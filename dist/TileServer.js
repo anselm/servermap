@@ -532,7 +532,7 @@ function () {
 
               case 21:
                 if (!(i < count + 1)) {
-                  _context4.next = 42;
+                  _context4.next = 41;
                   break;
                 }
 
@@ -540,7 +540,7 @@ function () {
 
               case 23:
                 if (!(j < count + 1)) {
-                  _context4.next = 39;
+                  _context4.next = 38;
                   break;
                 }
 
@@ -581,23 +581,26 @@ function () {
 
               case 31:
                 tile = _context4.sent;
-                console.log("produced a tile");
-                return _context4.abrupt("return", tile.mesh);
+                console.log("produced a tile at " + scratch.lat + " " + scratch.lon);
 
-              case 36:
+                this._project(tile);
+
+                group.add(tile.mesh);
+
+              case 35:
                 j++;
                 _context4.next = 23;
                 break;
 
-              case 39:
+              case 38:
                 i++;
                 _context4.next = 21;
                 break;
 
-              case 42:
+              case 41:
                 return _context4.abrupt("return", group);
 
-              case 43:
+              case 42:
               case "end":
                 return _context4.stop();
             }
@@ -611,6 +614,24 @@ function () {
 
       return produceManyTiles;
     }()
+  }, {
+    key: "_project",
+    value: function _project(scheme) {
+      // translate to surface of sphere
+      var offset = this.ll2v(scheme.rect.south, //+scheme.degrees_latrad/2,
+      scheme.rect.west, //+scheme.degrees_lonrad/2,
+      scheme.radius);
+      scheme.mesh.position.set(offset.x, offset.y, offset.z); // rotate to correct latitude
+
+      var q = new THREE.Quaternion();
+      q.setFromAxisAngle(new THREE.Vector3(1, 0, 0), -scheme.rect.south); //-scheme.degrees_latrad/2 );
+
+      scheme.mesh.quaternion.premultiply(q); // rotate to correct longitude
+
+      q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), scheme.rect.west); //+scheme.degrees_lonrad/2 );
+
+      scheme.mesh.quaternion.premultiply(q);
+    }
   }]);
 
   return TileServer;
