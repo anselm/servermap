@@ -5,11 +5,15 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
-var _cesium = _interopRequireDefault(require("cesium"));
-
 var _ImageServer = _interopRequireDefault(require("./ImageServer.js"));
 
+var _cesium = _interopRequireDefault(require("cesium"));
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { Promise.resolve(value).then(_next, _throw); } }
+
+function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -17,12 +21,9 @@ function _defineProperties(target, props) { for (var i = 0; i < props.length; i+
 
 function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
 
-_cesium.default.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI4YzI5OGVlNy1jOWY2LTRjNmEtYWYzMC1iNzhkZDhkZmEwOWEiLCJpZCI6MTM2MCwiaWF0IjoxNTI4MTQ0MDMyfQ.itVtUPeeXb7dasKXTUYZ6r3Hbm7OVUoA26ahLaVyj5I'; ////////////////////////////////////////////////////////////////////////////////////
-// TileServer 
-////////////////////////////////////////////////////////////////////////////////////
-
 var THREE = require('three');
 
+_cesium.default.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI4YzI5OGVlNy1jOWY2LTRjNmEtYWYzMC1iNzhkZDhkZmEwOWEiLCJpZCI6MTM2MCwiaWF0IjoxNTI4MTQ0MDMyfQ.itVtUPeeXb7dasKXTUYZ6r3Hbm7OVUoA26ahLaVyj5I'; ////////////////////////////////////////////////////////////////////////////////////
 ///
 /// TileServer
 ///
@@ -31,30 +32,89 @@ var THREE = require('three');
 /// TODO change this to an aframe-system
 /// TODO ellipsoid is spherical and should be oblate
 ///
+////////////////////////////////////////////////////////////////////////////////////
+
 var TileServer =
 /*#__PURE__*/
 function () {
   function TileServer() {
+    var _this = this;
+
     _classCallCheck(this, TileServer);
+
+    var _constructionHelper =
+    /*#__PURE__*/
+    function () {
+      var _ref = _asyncToGenerator(
+      /*#__PURE__*/
+      regeneratorRuntime.mark(function _callee() {
+        return regeneratorRuntime.wrap(function _callee$(_context) {
+          while (1) {
+            switch (_context.prev = _context.next) {
+              case 0:
+                _this.terrainProvider = _cesium.default.createWorldTerrain();
+                _context.next = 3;
+                return _this.terrainProvider.readyPromise;
+
+              case 3:
+                _context.next = 5;
+                return new _ImageServer.default();
+
+              case 5:
+                _this.imageServer = _context.sent;
+                return _context.abrupt("return", _this);
+
+              case 7:
+              case "end":
+                return _context.stop();
+            }
+          }
+        }, _callee, this);
+      }));
+
+      return function _constructionHelper() {
+        return _ref.apply(this, arguments);
+      };
+    }();
+
+    return _constructionHelper();
   }
 
   _createClass(TileServer, [{
     key: "getGround",
-    value: function getGround(lat, lon, lod, url, callback) {
-      // this whole routine is heavy due to needing to initialize cesium 
-      // - a better approach is to look at loaded tile data - improve later TODO
-      this.setProvider(url); // TODO replace with custom height derivation - see findClosestElevation() - but it needs to interpolate still
-      //Cesium.when(this.terrainProvider.readyPromise).then( () => {
+    value: function () {
+      var _getGround = _asyncToGenerator(
+      /*#__PURE__*/
+      regeneratorRuntime.mark(function _callee2(lat, lon, lod) {
+        var poi, groundResults;
+        return regeneratorRuntime.wrap(function _callee2$(_context2) {
+          while (1) {
+            switch (_context2.prev = _context2.next) {
+              case 0:
+                if (lod > 15) lod = 15; // there are no tiles at some higher levels of detail
 
-      var poi = _cesium.default.Cartographic.fromDegrees(lon, lat);
+                poi = _cesium.default.Cartographic.fromDegrees(lon, lat);
+                _context2.next = 4;
+                return _cesium.default.sampleTerrain(this.terrainProvider, lod, [poi]);
 
-      if (lod > 15) lod = 15; // there are no tiles at some higher levels of detail
+              case 4:
+                groundResults = _context2.sent;
+                return _context2.abrupt("return", groundResults[0].height);
 
-      _cesium.default.sampleTerrain(this.terrainProvider, lod, [poi]).then(function (groundResults) {
-        callback(groundResults[0].height);
-      }); //});
+              case 6:
+              case "end":
+                return _context2.stop();
+            }
+          }
+        }, _callee2, this);
+      }));
 
-    }
+      function getGround(_x, _x2, _x3) {
+        return _getGround.apply(this, arguments);
+      }
+
+      return getGround;
+    }()
   }, {
     key: "findClosestElevation",
     value: function findClosestElevation(scheme) {
@@ -335,110 +395,226 @@ function () {
       return geometry;
     }
   }, {
-    key: "isReady",
-    value: function isReady() {
-      if (!this.terrainProvider || !this.terrainProvider.ready) {
-        return false;
-      }
-
-      return true;
-    }
-  }, {
-    key: "setProvider",
-    value: function setProvider(url) {
-      console.log("set provider called with " + url);
-
-      if (this.terrainProvider) {
-        console.log("provider already setup");
-        return;
-      }
-
-      console.log("Setting provider"); //this.terrainProvider = new Cesium.CesiumTerrainProvider({ ellipsoid:new Cesium.Ellipsoid(1,1,1), requestVertexNormals:true, url:url });
-
-      this.terrainProvider = _cesium.default.createWorldTerrain();
-    }
-  }, {
-    key: "ready",
-    value: function ready(url, callback) {
-      this.setProvider(url);
-      console.log("waiting");
-
-      _cesium.default.when(this.terrainProvider.readyPromise).then(function () {
-        _ImageServer.default.instance().imageProvider.readyPromise(function () {
-          console.log("Doing startup");
-          callback();
-        });
-      });
-    }
-  }, {
     key: "produceTile",
-    value: function produceTile(data, callback) {
-      var _this = this;
+    value: function () {
+      var _produceTile = _asyncToGenerator(
+      /*#__PURE__*/
+      regeneratorRuntime.mark(function _callee3(data) {
+        var scheme, material, texture;
+        return regeneratorRuntime.wrap(function _callee3$(_context3) {
+          while (1) {
+            switch (_context3.prev = _context3.next) {
+              case 0:
+                // elaborate on the scheme
+                scheme = this.scheme_elaborate(data); // use a pre-specified material?
 
-      this.setProvider(data.url);
-      var material = 0;
+                material = 0;
 
-      if (data.groundTexture && data.groundTexture.length) {
-        var texture = new THREE.TextureLoader().load(data.groundTexture);
-        material = new THREE.MeshBasicMaterial({
-          map: texture,
-          color: 0xffffff
-        });
+                if (data.groundTexture && data.groundTexture.length) {
+                  texture = new THREE.TextureLoader().load(data.groundTexture);
+                  material = new THREE.MeshBasicMaterial({
+                    map: texture,
+                    color: 0xffffff
+                  });
+                } // produce material from a tile server?
+
+
+                if (material) {
+                  _context3.next = 7;
+                  break;
+                }
+
+                _context3.next = 6;
+                return this.imageServer.provideImage(scheme);
+
+              case 6:
+                material = _context3.sent;
+
+              case 7:
+                // manufacture mesh
+                scheme.material = material;
+                _context3.next = 10;
+                return this.terrainProvider.requestTileGeometry(scheme.xtile, scheme.ytile, scheme.lod);
+
+              case 10:
+                scheme.tile = _context3.sent;
+                scheme.geometry = this.toGeometry(scheme); // this.toGeometryIdealized(scheme)
+
+                scheme.mesh = new THREE.Mesh(scheme.geometry, scheme.material); // return the entire scheme
+
+                return _context3.abrupt("return", scheme);
+
+              case 14:
+              case "end":
+                return _context3.stop();
+            }
+          }
+        }, _callee3, this);
+      }));
+
+      function produceTile(_x4) {
+        return _produceTile.apply(this, arguments);
       }
 
-      _cesium.default.when(this.terrainProvider.readyPromise).then(function () {
-        if (true) {
-          var scheme = _this.scheme_elaborate(data);
+      return produceTile;
+    }()
+  }, {
+    key: "produceManyTiles",
+    value: function () {
+      var _produceManyTiles = _asyncToGenerator(
+      /*#__PURE__*/
+      regeneratorRuntime.mark(function _callee4(data) {
+        var group, q, height, groundValue, e, _height, scheme, count, i, j, scratch, tile;
 
-          if (!material) {
-            _this.imageProvider = _ImageServer.default.instance(); // not the most elegant... TODO move? have a parent wrapper for both providers?
+        return regeneratorRuntime.wrap(function _callee4$(_context4) {
+          while (1) {
+            switch (_context4.prev = _context4.next) {
+              case 0:
+                // TODO these limits are imposed by the current data sources - and should not be true for all data sources
+                if (data.lat > 85) data.lat = 85;
+                if (data.lat < -85) data.lat = -85; // Copy user values to internal - TODO remove this by code cleanup later - naming inconsistencies
 
-            console.log("about to load image");
+                data.latitude = data.lat;
+                data.longitude = data.lon; // What is a pleasant level of detail for a given distance from the planets center in planetary coordinates?
+                // TODO it is arguable that this could be specified separately from elevation rather than being inferred
 
-            _this.imageProvider.provideImage(scheme, function (material2) {
-              console.log("loaded image ");
-              scheme.material = material2;
-              console.log("getting tile");
+                if (data.lod < 0) {
+                  data.lod = TileServer.instance().elevation2lod(data.world_radius, data.elevation);
+                } // a root that will hold the rest of the tiles
 
-              _cesium.default.when(_this.terrainProvider.requestTileGeometry(scheme.xtile, scheme.ytile, scheme.lod), function (tile) {
-                scheme.tile = tile;
-                scheme.geometry = _this.toGeometry(scheme); // this.toGeometryIdealized(scheme);
 
-                scheme.mesh = new THREE.Mesh(scheme.geometry, scheme.material);
-                callback(scheme);
-              });
-            });
-          } else {
-            scheme.material = material;
+                group = new THREE.Group(); // adjust root so that the salient interest area is pointing north - ie on a vector of 0,1,0
 
-            _cesium.default.when(_this.terrainProvider.requestTileGeometry(scheme.xtile, scheme.ytile, scheme.lod), function (tile) {
-              scheme.tile = tile;
-              scheme.geometry = _this.toGeometry(scheme); // this.toGeometryIdealized(scheme);
+                if (true) {
+                  group.rotation.set(0, 0, 0);
+                  q = new THREE.Quaternion();
+                  q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), THREE.Math.degToRad(-data.longitude));
+                  group.quaternion.premultiply(q);
+                  q.setFromAxisAngle(new THREE.Vector3(1, 0, 0), THREE.Math.degToRad(-(90 - data.latitude))); //q.setFromAxisAngle( new THREE.Vector3(1,0,0), THREE.Math.degToRad(data.lat) ); // <- if you wanted lat,lon just facing you if you were at 0,0,1
 
-              scheme.mesh = new THREE.Mesh(scheme.geometry, scheme.material);
-              callback(scheme);
-            });
+                  group.quaternion.premultiply(q);
+                } // translate root to 0,0,0 in model coordinates (this is overridden by below)
+
+
+                if (true) {
+                  height = data.radius * data.elevation * data.stretch / data.world_radius + data.radius;
+                  group.position.set(0, -height, 0);
+                } // adjust the height of the root such that the tippy top of any mountain would intersect 0,0,0
+
+
+                if (!true) {
+                  _context4.next = 18;
+                  break;
+                }
+
+                _context4.next = 11;
+                return this.getGround(data.lat, data.lon, data.lod);
+
+              case 11:
+                groundValue = _context4.sent;
+                if (!groundValue) groundValue = 0;
+                if (!data.elevation) data.elevation = 0; // make sure is above ground
+
+                e = groundValue + data.elevation; // convert elevation above sea level to to model scale
+
+                _height = data.radius * e * data.stretch / data.world_radius + data.radius;
+                console.log("Dynamically moving planet to adjust for ground=" + groundValue + " height=" + _height + " stretch=" + data.stretch + " elev=" + e);
+                group.position.set(0, -_height, 0);
+
+              case 18:
+                // ask tile server for helpful facts about a given latitude, longitude, lod
+                scheme = this.scheme_elaborate(data); // the number of tiles to fetch in each direction is a function of the camera fov (45') and elevation over the size of a tile at current lod
+
+                count = data.padding || 0; // user supplied
+                // produce all tiles
+
+                i = -count;
+
+              case 21:
+                if (!(i < count + 1)) {
+                  _context4.next = 42;
+                  break;
+                }
+
+                j = -count;
+
+              case 23:
+                if (!(j < count + 1)) {
+                  _context4.next = 39;
+                  break;
+                }
+
+                // TODO this is sloppy; there is a chance of a numerical error - it would be better to be able to ask for tiles by index as well as by lat/lon
+                scratch = {
+                  lat: data.lat + scheme.degrees_lat * i,
+                  lon: data.lon + scheme.degrees_lon * j,
+                  lod: data.lod,
+                  stretch: data.stretch,
+                  radius: data.radius,
+                  world_radius: data.world_radius,
+                  url: data.url,
+                  building_url: data.building_url,
+                  building_flags: data.building_flags,
+                  buildingTexture: data.buildingTexture,
+                  groundTexture: data.groundTexture,
+                  project: 1
+                }; // hack terrible code TODO cough forever loop
+
+                while (scratch.lon < -180) {
+                  scratch.lon += 360;
+                }
+
+                while (scratch.lon >= 180) {
+                  scratch.lon -= 360;
+                }
+
+                while (scratch.lat < -90) {
+                  scratch.lat += 180;
+                }
+
+                while (scratch.lat >= 90) {
+                  scratch.lat -= 180;
+                }
+
+                _context4.next = 31;
+                return this.produceTile(scratch);
+
+              case 31:
+                tile = _context4.sent;
+                console.log("produced a tile");
+                return _context4.abrupt("return", tile.mesh);
+
+              case 36:
+                j++;
+                _context4.next = 23;
+                break;
+
+              case 39:
+                i++;
+                _context4.next = 21;
+                break;
+
+              case 42:
+                return _context4.abrupt("return", group);
+
+              case 43:
+              case "end":
+                return _context4.stop();
+            }
           }
-        }
-      });
-    }
+        }, _callee4, this);
+      }));
+
+      function produceManyTiles(_x5) {
+        return _produceManyTiles.apply(this, arguments);
+      }
+
+      return produceManyTiles;
+    }()
   }]);
 
   return TileServer;
-}(); ///
-/// Singelton convenience handles
-/// TODO an AFrame System could do this https://aframe.io/docs/0.7.0/core/systems.html
-///
-
-
-TileServer.instance = function () {
-  console.log("starting");
-  if (TileServer.tileServer) return TileServer.tileServer;
-  console.log("making");
-  TileServer.tileServer = new TileServer();
-  console.log(TileServer.tileServer);
-  return TileServer.tileServer;
-}; // es6 glue
+}(); // es6 glue
 
 
 var _default = TileServer;

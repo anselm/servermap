@@ -1,4 +1,8 @@
 
+import "@babel/polyfill";
+import fs from "fs"
+
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // Forge support for canvas and a few basic services so that the THREE module works
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -10,7 +14,8 @@ const Canvas = require('canvas');
 const { Blob,FileReader } = require('vblob');
 import GLTFExporter from 'three-gltf-exporter';
 
-function gltf_export(geometry,material) {
+async function gltf_export(geometry,material) {
+
   // Munge the global namespace
   // however this has to occur after Cesium is done - something in Cesium looks for 'document' and behaves badly
   global.window = global;
@@ -35,33 +40,43 @@ function gltf_export(geometry,material) {
     geometryTemp.fromGeometry( geometry );
     geometry = geometryTemp
   }
-  // Work around a bug
+
+  // Work around another bug in gltf exporter - userData has to be not undefined
   geometry.userData = {}
 
   // make a mesh out of this
   let mesh = new THREE.Mesh(geometry,material);
 
-  // make exporter
-  let gltf = new GLTFExporter()
-  gltf.parse( mesh, function( result ) {
-    var output = JSON.stringify( result, null, 2 );
-    console.log( output );
-  });
+  // helper to synchronously generate a string representing the gtlf
 
+  function gltfParsePromise(mesh) {
+    return new Promise(function(resolve,reject) {
+      let gltf = new GLTFExporter()
+      gltf.parse(mesh,function(result) {
+        resolve(result)
+      })
+    })
+  }
+
+  // return string to caller
+  let result = await gltfParsePromise(mesh)
+
+  return result
 }
 
 ////////////////////////////////////////////////////////////////////////
 // a hardcoded example query
 ////////////////////////////////////////////////////////////////////////
 
-var TileServer = require('./TileServer.js')
-TileServer = TileServer.default
+import TileServer from './TileServer.js';
 
 let data = {
              lat: 37.7983222,
              lon: -122.3972797,
-             lod: 15,
-         stretch: 1,
+             lod: 15,                 // desired level of detail - will compute itself if not specified
+         stretch: 1,                  // how much to stetch space vertically
+         padding: 0,                  // how many extra tiles to fetch around area of interest
+       elevation: 0,
           radius: 6372798.2,
     world_radius: 6372798.2,
              url: "https://assets.agi.com/stk-terrain/v1/tilesets/world/tiles",
@@ -72,17 +87,26 @@ let data = {
  buildingTexture: ''
 }
 
-function test() {
-  TileServer.instance().produceTile(data,scheme => {
-    gltf_export(scheme.geometry,scheme.material)
-  })
+async function test() {
+
+  // start a tile server
+  let tileServer = await new TileServer()
+
+  // get some tiles
+  let results = await tileServer.produceManyTiles(data)
+
+  // make a gltf
+  let gltf = await gltf_export(results.geometry,results.material)
+
+  // turn it into a string
+  let str = JSON.stringify( gltf, null, 2 );
+
+  // dump it to fs
+  fs.writeFileSync("test.gltf",str)
+
 }
 
-TileServer.instance().ready(data.url,function() {
-   test()
-})
-
-
+test()
 
 ///////////////////////////////////////////////////////////////////////
 // example server to deal with client requests for tiles

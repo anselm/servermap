@@ -1,50 +1,47 @@
 
-///
-/// BingImageProvider - fetch tiles directly from Bing on demand as threejs materials
-///
-/// TODO - caches images but never flushes them - should flush old images
-/// TODO - the key is hardcoded - should be supplied by caller
-///
-
 const fetch = require('node-fetch');
 
 const { Canvas, createCanvas, loadImage } = require('canvas')
 
 var THREE = require('three')
 
-class BingImageProvider {
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+/// BingImageProvider - fetch tiles directly from Bing on demand as threejs materials
+///
+/// TODO - caches images but never flushes them - should flush old images
+/// TODO - the key is hardcoded - should be supplied by caller
+///
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+class _BingImageProvider {
 
   constructor() {
     this.cached = {};
+    return this._constructionPromise()
   }
 
-  readyPromise(resolve) {
-    let scope = this;
-console.log("ready promise")
+  async _constructionPromise() {
+    let scope = this
     if(scope.imageurl) {
-      resolve();
-      return;
+      return scope
     }
-console.log("fetching details")
     let metadata = "https://dev.virtualearth.net/REST/V1/Imagery/Metadata/Aerial?output=json&include=ImageryProviders&key=RsYNpiMKfN7KuwZrt8ur~ylV3-qaXdDWiVc2F5NCoFA~AkXwps2-UcRkk2L60K5qBy5kPnTmwvxdfwl532NTheLdFfvYlVJbLnNWG1iC-RGL";
-    fetch(metadata).then(response => { return response.json() }).then( json => {
-console.log("got results")
-console.log(json)
-      if(!json.resourceSets.length || !json.resourceSets[0].resources.length) {
-        console.error("Too many requests");
-        setTimeout(function() { resolve(); },Math.random() * 10 + 1);
-      } else {
-        let subdomains = json.resourceSets[0].resources[0].imageUrlSubdomains;
-        scope.subdomain = subdomains[~~(subdomains.length * Math.random())];
-        scope.imageurl = json.resourceSets[0].resources[0].imageUrl;
-        scope.imageurl = scope.imageurl.replace("http", "https");
-        scope.imageurl = scope.imageurl.replace("{culture}", "en-US");
-        scope.imageurl = scope.imageurl.replace("{subdomain}",scope.subdomain);
-        scope.imageurl = scope.imageurl.replace("jpeg", "png");
-console.log("done fetching details")
-        resolve();
-      }
-    });
+    let response = await fetch(metadata)
+    let json = await response.json()
+    if(!json.resourceSets.length || !json.resourceSets[0].resources.length) {
+      console.error("Too many requests");
+      //setTimeout(function() { resolve(); },Math.random() * 10 + 1);
+    } else {
+      let subdomains = json.resourceSets[0].resources[0].imageUrlSubdomains;
+      scope.subdomain = subdomains[~~(subdomains.length * Math.random())];
+      scope.imageurl = json.resourceSets[0].resources[0].imageUrl;
+      scope.imageurl = scope.imageurl.replace("http", "https");
+      scope.imageurl = scope.imageurl.replace("{culture}", "en-US");
+      scope.imageurl = scope.imageurl.replace("{subdomain}",scope.subdomain);
+      scope.imageurl = scope.imageurl.replace("jpeg", "png");
+    }
+    return scope
   }
 
   quadkey(x, y, z) {
@@ -66,9 +63,6 @@ console.log("done fetching details")
 
   requestImage(x,y,lod) {
     let scope = this;
-console.log("requesting image")
-console.log(this.imageurl)
-
     let key = x + "-" + y + "-" + lod;
     let c = scope.cached[key];
     if(c) {
@@ -79,14 +73,10 @@ console.log(this.imageurl)
 
     return new Promise(function(resolve,reject) {
       let quadkey = scope.quadkey(x,y,lod);
-console.log(scope)
-console.log(scope.imageurl)
-console.log(quadkey)
       let url = scope.imageurl.replace("{quadkey}", quadkey);
       loadImage(url).then( (image) => {
         image.url = url
         scope.cached[key] = image;
-console.log("fetched " + url )
         resolve(image);
       })
       //let image = new Image();
@@ -100,52 +90,44 @@ console.log("fetched " + url )
   }
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 /// ImageServer returns images on demand that match the terrain tile boundaries.
 ///
 /// TODO Cesium access token should be settable
 /// TODO Code is over-specialized around Bing Images + Cesium Elevation Tiles - but hard to generalize trivially.
 ///
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class ImageServer {
 
   constructor() {
     this.data = {};
     this.data.debug = false;
-    //this.data.mapStyle = Cesium.BingMapsStyle.AERIAL;
+    // TODO - hard coded to go directly to for now - need to switch back to Cesium keys - but somehow tile organization differs?
     this.data.source = 0;
+    // Build an asynchronous promise that the constructor can return that can be awaited on to return the actual 'this' property
+    return this._constructionPromise()
+  }
+
+  async _constructionPromise() {
     if(this.data.source == 0) {
-      // bypass cesium
-      this.imageProvider = new BingImageProvider();
+      // This is a 'direct' provider that emulates Cesium's provider but just does everything itself
+      this.imageProvider = await new _BingImageProvider();
     } else if(this.data.source == 1) {
-       // cesium for sf area - Something seems to be not working with this provider although it's the one I'd prefer to use right now - mar 1 2018
-       this.data.CesiumionAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJlYmI0ZmY0My1hOTg5LTQzNWEtYWRjNy1kYzYzNTM5ZjYyZDciLCJpZCI6NjksImFzc2V0cyI6WzM3MDQsMzcwMywzNjk5LDM2OTNdLCJpYXQiOjE1MTY4MzA4ODZ9.kM-JnlG-00e7S_9fqS_QpXYTg7y5-cIEcZEgxKwRt5E';
-       this.data.url = 'https://beta.cesium.com/api/assets/3693?access_token=' + this.data.CesiumionAccessToken;
-       this.imageProvider = new Cesium.createTileMapServiceImageryProvider(this.data);
+      // cesium for sf area - Something seems to be not working with this provider although it's the one I'd prefer to use right now - mar 1 2018
+      this.data.CesiumionAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJlYmI0ZmY0My1hOTg5LTQzNWEtYWRjNy1kYzYzNTM5ZjYyZDciLCJpZCI6NjksImFzc2V0cyI6WzM3MDQsMzcwMywzNjk5LDM2OTNdLCJpYXQiOjE1MTY4MzA4ODZ9.kM-JnlG-00e7S_9fqS_QpXYTg7y5-cIEcZEgxKwRt5E';
+      this.data.url = 'https://beta.cesium.com/api/assets/3693?access_token=' + this.data.CesiumionAccessToken;
+      this.imageProvider = new Cesium.createTileMapServiceImageryProvider(this.data);
+      await this.imageProvider.readyPromise()
     } else if(this.data.source == 2) {
       // Cesium Bing abstraction in general - works ok although LOD is off by one?
       this.data.key = 'RsYNpiMKfN7KuwZrt8ur~ylV3-qaXdDWiVc2F5NCoFA~AkXwps2-UcRkk2L60K5qBy5kPnTmwvxdfwl532NTheLdFfvYlVJbLnNWG1iC-RGL';
       this.data.url = 'https://dev.virtualearth.net',
       this.imageProvider = new Cesium.BingMapsImageryProvider(this.data);
+      await this.imageProvider.readyPromise()
     }
-  }
-
-  isReady() {
-    // TODO examine why do the readypromises differ?
-    if(this.data.source == 0) {
-      return this.imageProvider && this.imageProvider.imageurl;
-    } else {
-      return this.imageProvider && this.imageProvider.ready;
-    }    
-  }
-
-  ready(callback) {
-    // TODO examine why do the readypromises differ?
-    if(this.data.source == 0) {
-      this.imageProvider.readyPromise(callback);
-    } else {
-      Cesium.when(this.imageProvider.readyPromise).then(callback);
-    }
+    return this
   }
 
   // this method calculates the image tile and fractional component (ie which pixel) of the image tile to fetch
@@ -160,12 +142,12 @@ class ImageServer {
     return tileY;
   }
 
-  provideImageProjected(scheme,callback) {
+  async provideImage(scheme) {
 
     // For Mercator, check out Slide 39-43 of Rendering the Whole Wide World on the World Wide Web for some background and reprojectToGeographic() in ImageryLayer.js for how Cesium currently does it.
     // Here the reprojection is done on CPU...
 
-    // circument a quirk with cesium data source
+    // circument a quirk with cesium data source - TODO cesium uses a different tile scheme than bing
     let uselod = (this.data.source == 2) ? scheme.lod+1 : scheme.lod+1;
 
     // get image tiles at one level deeper than terrain tiles to take advantage of x lining up
@@ -180,70 +162,61 @@ class ImageServer {
     let promises = [];
     for(let i = Math.floor(ty1);i<=Math.floor(ty2);i++) {
       let p = this.imageProvider.requestImage(tx1,i,scheme.lod+1);
-      console.log("pushing " + tx1 + " " + i )
+      console.log("ImageServer: pushing an image promise to load at tile xy = " + tx1 + " " + i )
       promises.push(p);
     }
-    console.log("done pushing promises")
 
-    // get canvas to paint to for final output
-    // TODO may as well put this indie the promise
+    // Wait for promises
+    let results = await Promise.all(promises)
+
+    // convert the img to something that can be read and written
+    if(!results || !results.length) {
+      console.error("ImageServer: no image content error 1");
+      return;        
+    }
+
+    // a canvas is required per image source in order to get at the pixels
+    for(let i = 0; i < results.length;i++) {        
+      if(typeof results[i] == 'undefined' || !results[i]) {
+        console.error("ImageServer: no image content error 2");
+        return;
+      }
+      this.canvas_from_image(results[i]);
+    }
+
+    // get a canvas to paint to for final output
     let canvas = this.canvas_new();
 
-    // Paint once loaded
-    console.log("waiting to finish doing promises")
-    Promise.all(promises).then(results => {
-      console.log("done promises")
+    // walk the sources and copy pixels to a target - this is labor intensive
+    for(let y = 0;y<256;y++) {
 
-      // convert the img to something that can be read and written
-      if(!results.length) {
-        console.error("Image server no image content error 1");
-        return;        
+      // get reverse mercator pixel location (only y is needed)
+      let txy = this.projection2tile(scheme,image_lod,y);
+
+      // get that tile (offset from the set of tiles we happen to have)
+      let image = results[Math.floor(txy)-Math.floor(ty1)];
+
+      // get y in tile
+      let yy = Math.floor(txy*256) & 255;
+
+      // copy that row (there is no horizontal reprojection only vertical)
+      // TODO this could be optimized such as by not setting the alpha here and copying uints
+      for(let x = 0; x<256;x++) {
+        canvas.imageData.data[(y*256+x)*4+0] = image.imageData.data[(yy*256+x)*4+0];
+        canvas.imageData.data[(y*256+x)*4+1] = image.imageData.data[(yy*256+x)*4+1];
+        canvas.imageData.data[(y*256+x)*4+2] = image.imageData.data[(yy*256+x)*4+2];
+        canvas.imageData.data[(y*256+x)*4+3] = 255;
       }
+    }
 
-      // a canvas is required per image source in order to get at the pixels
-      for(let i = 0; i < results.length;i++) {        
-        if(typeof results[i] == 'undefined' || !results[i]) {
-          console.error("Image server no image content error 2");
-          return;
-        }
-        this.canvas_from_image(results[i]);
-      }
-
-      // walk the sources and copy pixels to a target - this is labor intensive
-      for(let y = 0;y<256;y++) {
-
-        // get reverse mercator pixel location (only y is needed)
-        let txy = this.projection2tile(scheme,image_lod,y);
-
-        // get that tile (offset from the set of tiles we happen to have)
-        let image = results[Math.floor(txy)-Math.floor(ty1)];
-
-        // get y in tile
-        let yy = Math.floor(txy*256) & 255;
-
-        // copy that row (there is no horizontal reprojection only vertical)
-        // TODO this could be optimized such as by not setting the alpha here and copying uints
-        for(let x = 0; x<256;x++) {
-          canvas.imageData.data[(y*256+x)*4+0] = image.imageData.data[(yy*256+x)*4+0];
-          canvas.imageData.data[(y*256+x)*4+1] = image.imageData.data[(yy*256+x)*4+1];
-          canvas.imageData.data[(y*256+x)*4+2] = image.imageData.data[(yy*256+x)*4+2];
-          canvas.imageData.data[(y*256+x)*4+3] = 255;
-        }
-      }
-
-      // return to the caller
-      callback(this.canvas_to_material_from_imagedata(canvas));
-    });
-  }
-
-  provideImage(scheme,callback) {
-    this.provideImageProjected(scheme,callback);
+    // return a material to the caller to be nice
+    let material = this.canvas_to_material_from_imagedata(canvas)
+    return material
   }
 
   //////////////////////////////////////////////////////////// canvas assistance
 
   canvas_new() {
-    console.log("making canvas")
     let canvas = createCanvas(256,256)
     // let canvas = document.createElement('canvas');
     canvas.id = "canvas";
@@ -288,7 +261,6 @@ class ImageServer {
     let material = new THREE.MeshLambertMaterial( { color:0xffffff, wireframe:false }); //shading: THREE.SmoothShading});
     material.map = new THREE.Texture(canvas);
     material.map.needsUpdate = true;
-    console.log("canvas converted to material...")
     return material;
   }
 
@@ -296,25 +268,10 @@ class ImageServer {
     // data[y * canvasWidth + x] = 0xff00000+b<<16+g<<8+r;
     // imageData.data.set(buf8);
     canvas.ctx.putImageData(canvas.imageData, 0, 0);
-    console.log("canvas converted to image data .... ")
     return this.canvas_to_material(canvas);
   }
 
 }
-
-///
-/// Singelton convenience handles
-/// TODO an AFrame System could do this https://aframe.io/docs/0.7.0/core/systems.html
-///
-
-ImageServer.instance = function() {
-  console.log("Image Server instance() ")
-  if(ImageServer.imageServer) return ImageServer.imageServer;
-  ImageServer.imageServer = new ImageServer();
-  console.log("Image Server Ready")
-  return ImageServer.imageServer;
-}
-
 
 // es6 glue
 

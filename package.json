@@ -1,103 +1,51 @@
 {
-  "name": "aframe-aterrain-component",
-  "version": "1.2.0",
-  "description": "A 3d geographic map component for AFrame that uses Cesium data.",
-  "unused_main": "dist/aframe-terrain-component.js",
-  "unused_unpkg": "dist/aframe-aterrain-component.min.js",
+  "name": "servermap",
+  "version": "1.0.0",
+  "description": "Server side tile generation test.",
+  "main": "dist/main.js",
+  "dependencies": {
+    "@babel/polyfill": "^7.2.5",
+    "blob": "^0.0.5",
+    "canvas": "^2.3.1",
+    "cesium": "1.53.0",
+    "fs": "0.0.1-security",
+    "node-fetch": "^2.3.0",
+    "requirejs": "^2.3.6",
+    "sampleterrain": "^1.0.5",
+    "three": "^0.101.1",
+    "three-gltf-exporter": "^0.0.1",
+    "three-gltf-loader": "^1.101.0",
+    "vblob": "^1.0.2"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.2.3",
+    "@babel/core": "^7.3.3",
+    "@babel/plugin-transform-arrow-functions": "^7.2.0",
+    "@babel/plugin-transform-async-to-generator": "^7.2.0",
+    "@babel/preset-env": "^7.3.1",
+    "babel-cli": "^6.26.0",
+    "babel-core": "^6.26.3",
+    "babel-loader": "^8.0.5",
+    "babel-polyfill": "^6.26.0",
+    "babel-preset-env": "^1.7.0",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-stage-0": "^6.24.1",
+    "webpack": "^4.29.5",
+    "webpack-cli": "^3.2.3"
+  },
   "scripts": {
-    "unused_dev": "budo src/all.js:dist/aframe-aterrain-component.min.js --port 7000 --live --open",
-    "unused_rollup": "rollup src/all.js --output.format umd --name 'aframe-aterrain-component' --output.file dist/aframe-aterrain-component.js",
-    "unused_error_with_multi": "npx webpack --mode development src/all.js dist/aframe-aterrain-component.js",
-    "bundle": "npx webpack",
-    "compress": "uglifyjs dist/aframe-aterrain-component.js > dist/aframe-aterrain-component.min.js",
-    "build": "npm run bundle && npm run compress",
-    "dist": "npm run bundle && npm run compress",
-    "prepare": "npm run bundle && npm run compress",
-    "lint": "semistandard -v | snazzy",
-    "ghpages": "ghpages",
-    "start": "npm run dev",
-    "test": "karma start ./tests/karma.conf.js",
-    "test:firefox": "karma start ./tests/karma.conf.js --browsers Firefox",
-    "test:chrome": "karma start ./tests/karma.conf.js --browsers Chrome"
+    "start": "node dist/main.js",
+    "compile": "./node_modules/.bin/babel src --out-dir dist --presets=@babel/env",
+    "unused_build": "webpack"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/anselm/aterrain.git"
+    "url": "git+https://github.com/anselm/servermap.git"
   },
-  "keywords": [
-    "aframe",
-    "aframe-component",
-    "aframe-vr",
-    "vr",
-    "mozvr",
-    "webvr",
-    "aterrain",
-    "geography",
-    "cartography",
-    "cesium",
-    "globe",
-    "map"
-  ],
-  "author": "anselm@hook.org",
-  "license": "MIT",
+  "author": "",
+  "license": "ISC",
   "bugs": {
-    "url": "https://github.com/anselm/aterrain/issues"
+    "url": "https://github.com/anselm/servermap/issues"
   },
-  "homepage": "https://github.com/anselm/aterrain#readme",
-  "devDependencies": {
-    "@babel/cli": "^7.2.3",
-    "@babel/core": "^7.2.2",
-    "@babel/preset-env": "^7.3.1",
-    "aframe": "^0.8.2",
-    "browserify": "^13.0.0",
-    "budo": "^11.2.2",
-    "chai": "^3.4.1",
-    "chai-shallow-deep-equal": "^1.3.0",
-    "ghpages": "^0.0.8",
-    "karma": "^2.0.2",
-    "karma-browserify": "^5.2.0",
-    "karma-chai-shallow-deep-equal": "0.0.4",
-    "karma-chrome-launcher": "2.0.0",
-    "karma-env-preprocessor": "^0.1.1",
-    "karma-firefox-launcher": "^0.1.7",
-    "karma-mocha": "^0.2.1",
-    "karma-mocha-reporter": "^1.1.3",
-    "karma-sinon-chai": "^1.1.0",
-    "mocha": "^5.2.0",
-    "randomcolor": "^0.4.4",
-    "semistandard": "^12.0.1",
-    "shelljs": "^0.7.0",
-    "shx": "^0.1.1",
-    "sinon": "^1.17.5",
-    "sinon-chai": "^2.8.0",
-    "snazzy": "^4.0.0",
-    "uglify-es": "github:mishoo/UglifyJS2#harmony",
-    "uglifyjs-webpack-plugin": "^1.2.5",
-    "webpack": "^4.10.2",
-    "webpack-cli": "^2.1.5"
-  },
-  "semistandard": {
-    "globals": [
-      "AFRAME",
-      "THREE"
-    ],
-    "ignore": [
-      "dist/**"
-    ]
-  },
-  "dependencies": {
-    "@babel/polyfill": "^7.2.5",
-    "blob": "0.0.5",
-    "canvas": "^2.3.1",
-    "cesium": "1.53",
-    "node-fetch": "^2.3.0",
-    "requirejs": "^2.3.6",
-    "rollup": "^0.57.1",
-    "sampleterrain": "^1.0.5",
-    "three": "^0.91.0",
-    "three-gltf-exporter": "0.0.1",
-    "three-gltf-loader": "^1.101.0",
-    "uglify-js": "^3.4.0",
-    "vblob": "^1.0.2"
-  }
+  "homepage": "https://github.com/anselm/servermap#readme"
 }

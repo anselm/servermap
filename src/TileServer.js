@@ -1,19 +1,14 @@
-////////////////////////////////////////////////////////////////////////////////////
-// Cesium
-////////////////////////////////////////////////////////////////////////////////////
-
-import Cesium from 'cesium'
-
-Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI4YzI5OGVlNy1jOWY2LTRjNmEtYWYzMC1iNzhkZDhkZmEwOWEiLCJpZCI6MTM2MCwiaWF0IjoxNTI4MTQ0MDMyfQ.itVtUPeeXb7dasKXTUYZ6r3Hbm7OVUoA26ahLaVyj5I';
-
-////////////////////////////////////////////////////////////////////////////////////
-// TileServer 
-////////////////////////////////////////////////////////////////////////////////////
 
 const THREE = require('three');
 
 import ImageServer from './ImageServer.js';
 
+import Cesium from 'cesium'
+
+Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI4YzI5OGVlNy1jOWY2LTRjNmEtYWYzMC1iNzhkZDhkZmEwOWEiLCJpZCI6MTM2MCwiaWF0IjoxNTI4MTQ0MDMyfQ.itVtUPeeXb7dasKXTUYZ6r3Hbm7OVUoA26ahLaVyj5I';
+
+
+////////////////////////////////////////////////////////////////////////////////////
 ///
 /// TileServer
 ///
@@ -22,23 +17,25 @@ import ImageServer from './ImageServer.js';
 /// TODO change this to an aframe-system
 /// TODO ellipsoid is spherical and should be oblate
 ///
+////////////////////////////////////////////////////////////////////////////////////
 
 class TileServer  {
 
-  getGround(lat,lon,lod,url,callback) {
-    // this whole routine is heavy due to needing to initialize cesium 
-    // - a better approach is to look at loaded tile data - improve later TODO
+  constructor() {
+    let _constructionHelper = async () => {
+      this.terrainProvider = Cesium.createWorldTerrain()
+      await this.terrainProvider.readyPromise
+      this.imageServer = await new ImageServer()
+      return this
+    }
+    return _constructionHelper()
+  }
 
-    this.setProvider(url);
-
-    // TODO replace with custom height derivation - see findClosestElevation() - but it needs to interpolate still
-    //Cesium.when(this.terrainProvider.readyPromise).then( () => {
-      let poi = Cesium.Cartographic.fromDegrees(lon,lat);
-      if(lod > 15) lod = 15; // there are no tiles at some higher levels of detail
-      Cesium.sampleTerrain(this.terrainProvider,lod,[poi]).then(function(groundResults) {
-        callback(groundResults[0].height);
-      });
-    //});
+  async getGround(lat,lon,lod) {
+    if(lod > 15) lod = 15; // there are no tiles at some higher levels of detail
+    let poi = Cesium.Cartographic.fromDegrees(lon,lat);
+    let groundResults = await Cesium.sampleTerrain(this.terrainProvider,lod,[poi])
+    return groundResults[0].height
   }
 
   findClosestElevation(scheme) {
@@ -347,89 +344,121 @@ class TileServer  {
     return geometry;
   }
 
-  isReady() {
-    if(!this.terrainProvider || !this.terrainProvider.ready ) {
-      return false;
-    }
-    return true;
-  }
+  async produceTile(data) {
 
-  setProvider(url) {
-    console.log("set provider called with " + url )
-    if(this.terrainProvider) {
-      console.log("provider already setup")
-      return;
-    }
-    console.log("Setting provider")
-    //this.terrainProvider = new Cesium.CesiumTerrainProvider({ ellipsoid:new Cesium.Ellipsoid(1,1,1), requestVertexNormals:true, url:url });
-    this.terrainProvider = Cesium.createWorldTerrain();
-  }
+    // elaborate on the scheme
+    let scheme = this.scheme_elaborate(data);
 
-  ready(url,callback) {
-    this.setProvider(url);
-    console.log("waiting")
-    Cesium.when(this.terrainProvider.readyPromise).then( () => {
-      ImageServer.instance().imageProvider.readyPromise(() => {
-        console.log("Doing startup")
-        callback()
-      })
-    })
-  }
-
-  produceTile(data,callback) {
-
-    this.setProvider(data.url);
-
+    // use a pre-specified material?
     let material = 0;
-
     if(data.groundTexture && data.groundTexture.length) {
       let texture = new THREE.TextureLoader().load(data.groundTexture);
       material = new THREE.MeshBasicMaterial({map:texture,color:0xffffff});
     }
 
-    Cesium.when(this.terrainProvider.readyPromise).then( () => {
-      if(true) {
-        let scheme = this.scheme_elaborate(data);
-        if(!material) {
-          this.imageProvider = ImageServer.instance(); // not the most elegant... TODO move? have a parent wrapper for both providers?
-          console.log("about to load image")
-          this.imageProvider.provideImage(scheme, material2 => {
-            console.log("loaded image ")
-            scheme.material = material2;
-            console.log("getting tile")
-            Cesium.when(this.terrainProvider.requestTileGeometry(scheme.xtile,scheme.ytile,scheme.lod),tile => {
-              scheme.tile = tile;
-              scheme.geometry = this.toGeometry(scheme); // this.toGeometryIdealized(scheme);
-              scheme.mesh = new THREE.Mesh(scheme.geometry,scheme.material);
-              callback(scheme);
-            });
-          });
-        } else {
-            scheme.material = material;
-            Cesium.when(this.terrainProvider.requestTileGeometry(scheme.xtile,scheme.ytile,scheme.lod),tile => {
-              scheme.tile = tile;
-              scheme.geometry = this.toGeometry(scheme); // this.toGeometryIdealized(scheme);
-              scheme.mesh = new THREE.Mesh(scheme.geometry,scheme.material);
-              callback(scheme);
-            });
-        }
-      }
-    });
+    // produce material from a tile server?
+    if(!material) {
+      material = await this.imageServer.provideImage(scheme)
+    }
+
+    // manufacture mesh
+    scheme.material = material;
+    scheme.tile = await this.terrainProvider.requestTileGeometry(scheme.xtile,scheme.ytile,scheme.lod)
+    scheme.geometry = this.toGeometry(scheme) // this.toGeometryIdealized(scheme)
+    scheme.mesh = new THREE.Mesh(scheme.geometry,scheme.material)
+
+    // return the entire scheme
+    return scheme
   }
-}
 
-///
-/// Singelton convenience handles
-/// TODO an AFrame System could do this https://aframe.io/docs/0.7.0/core/systems.html
-///
+  async produceManyTiles(data) {
 
-TileServer.instance = function() {
-  console.log("starting")
-  if(TileServer.tileServer) return TileServer.tileServer;
-  console.log("making")
-  TileServer.tileServer = new TileServer();
-  console.log(TileServer.tileServer)
-  return TileServer.tileServer;
+    // TODO these limits are imposed by the current data sources - and should not be true for all data sources
+    if(data.lat > 85) data.lat = 85;
+    if(data.lat < -85) data.lat = -85;
+
+    // Copy user values to internal - TODO remove this by code cleanup later - naming inconsistencies
+    data.latitude = data.lat;
+    data.longitude = data.lon;
+
+    // What is a pleasant level of detail for a given distance from the planets center in planetary coordinates?
+    // TODO it is arguable that this could be specified separately from elevation rather than being inferred
+    if(data.lod < 0) {
+      data.lod = TileServer.instance().elevation2lod(data.world_radius,data.elevation);
+    }
+
+    // a root that will hold the rest of the tiles
+    let group = new THREE.Group()
+
+    // adjust root so that the salient interest area is pointing north - ie on a vector of 0,1,0
+    if(true) {
+      group.rotation.set(0,0,0);
+      var q = new THREE.Quaternion();
+      q.setFromAxisAngle( new THREE.Vector3(0,1,0), THREE.Math.degToRad(-data.longitude) );
+      group.quaternion.premultiply(q);
+      q.setFromAxisAngle( new THREE.Vector3(1,0,0), THREE.Math.degToRad(-(90-data.latitude) ) );
+      //q.setFromAxisAngle( new THREE.Vector3(1,0,0), THREE.Math.degToRad(data.lat) ); // <- if you wanted lat,lon just facing you if you were at 0,0,1
+      group.quaternion.premultiply(q);
+    }
+
+    // translate root to 0,0,0 in model coordinates (this is overridden by below)
+    if(true) {
+      let height = data.radius * data.elevation * data.stretch / data.world_radius + data.radius;
+      group.position.set(0,-height,0);
+    }
+
+    // adjust the height of the root such that the tippy top of any mountain would intersect 0,0,0
+    if(true) {
+      let groundValue = await this.getGround(data.lat,data.lon,data.lod)
+      if(!groundValue) groundValue = 0
+      if(!data.elevation) data.elevation = 0
+      // make sure is above ground
+      let e = groundValue + data.elevation;
+      // convert elevation above sea level to to model scale
+      let height = data.radius * e * data.stretch / data.world_radius + data.radius;
+      console.log("Dynamically moving planet to adjust for ground=" + groundValue + " height="+height + " stretch="+data.stretch + " elev="+e);
+      group.position.set(0,-height,0);
+    }
+
+    // ask tile server for helpful facts about a given latitude, longitude, lod
+    let scheme = this.scheme_elaborate(data);
+
+    // the number of tiles to fetch in each direction is a function of the camera fov (45') and elevation over the size of a tile at current lod
+    let count = data.padding || 0 // user supplied
+
+    // produce all tiles
+    for(let i = -count;i<count+1;i++) {
+      for(let j = -count;j<count+1;j++) {
+        // TODO this is sloppy; there is a chance of a numerical error - it would be better to be able to ask for tiles by index as well as by lat/lon
+        let scratch = { lat:data.lat + scheme.degrees_lat * i,
+                        lon:data.lon + scheme.degrees_lon * j,
+                        lod:data.lod,
+                    stretch:data.stretch,
+                     radius:data.radius,
+               world_radius:data.world_radius,
+                        url:data.url,
+               building_url:data.building_url,
+               building_flags:data.building_flags,
+               buildingTexture:data.buildingTexture,
+               groundTexture:data.groundTexture,
+                    project:1,
+                      };
+        // hack terrible code TODO cough forever loop
+        while(scratch.lon < -180) scratch.lon += 360;
+        while(scratch.lon >= 180) scratch.lon -= 360;
+        while(scratch.lat < -90) scratch.lat += 180;
+        while(scratch.lat >= 90) scratch.lat -= 180;
+        let tile = await this.produceTile(scratch)
+        console.log("produced a tile")
+return tile.mesh // TEST
+        console.log(tile)
+        group.add(tile.mesh)
+      }
+    }
+
+    // return tiles in a threejs group
+    return group
+  }
 }
 
 // es6 glue

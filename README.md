@@ -1,5 +1,16 @@
 Server side tile generation test.
 
+Build
+
+npm run compile
+or
+./node_modules/.bin/babel src --out-dir build --presets=@babel/env
+
+Run
+
+npm start
+
+
 Note
 
  - must use cesium 1.53 due to a bug
