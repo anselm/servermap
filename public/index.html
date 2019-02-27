@@ -1,0 +1,99 @@
+<link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css" integrity="sha384-nn4HPE8lTHyVtfCBi5yW9d20FjT8BJwUXyWZT9InLYax14RDjBj46LmSztkmNP9w" crossorigin="anonymous">
+
+<h1>Tile Generator - enter values to get a GLTF</h1>
+
+<form class="pure-form pure-form-aligned" action="javascript:;" onsubmit="return build_url(this)" >
+    <fieldset>
+
+        <div class="pure-control-group">
+            <label for="lat">Latitude</label>
+            <input id="lat" type="text" value="-0.1541588">
+        </div>
+
+        <div class="pure-control-group">
+            <label for="lon">Longitude</label>
+            <input id="lon" type="text" value="37.3099368">
+        </div>
+
+        <div class="pure-control-group">
+            <label for="lod">Level of Detail</label>
+            <input id="lod" type="text" value="13">
+            <span class="pure-form-message-inline">How close to zoom in? Between 1 and 15</span>
+        </div>
+
+        <div class="pure-control-group">
+            <label for="email">Stretch</label>
+            <input id="str" type="text" value="1">
+            <span class="pure-form-message-inline">How much to stretch the terrain</span>
+        </div>
+
+        <div class="pure-control-group">
+            <label for="email">Elevation above terrain</label>
+            <input id="elev" type="text" value="0">
+            <span class="pure-form-message-inline">How far to be above the height of the land?</span>
+        </div>
+
+        <div class="pure-control-group">
+            <label for="email">Radius of planet?</label>
+            <input id="rad" type="text" value="10000">
+            <span class="pure-form-message-inline">This forms a scale ratio -  between 1000 and earths radius in km - 6372798.2</span>
+        </div>
+
+        <div class="pure-control-group">
+            <label for="pad">Padding</label>
+            <input id="pad" type="text" value="1">
+            <span class="pure-form-message-inline">Extra tiles around your center point</span>
+        </div>
+
+        <div class="pure-controls">
+            <button type="submit" class="pure-button pure-button-primary">Submit</button>
+        </div>
+
+    </fieldset>
+</form>
+
+<script>
+
+function build_url(form) {
+
+  let lat = parseFloat(form.lat.value)
+  if(lat < -85) lat = -85
+  if(lat > 85) lat = 85
+
+  let lon = parseFloat(form.lon.value)
+  if(lon < -180 ) lon = -180
+  if(lon > 180 ) lon = 180
+
+  let lod = parseInt(form.lod.value)
+  if(lod < 1) lod = 1
+  if(lod > 14) lod = 14
+
+  let str = parseInt(form.str.value)
+  if(str < 0.1) str = 0.1
+  if(str > 10) str = 10
+
+  let pad = parseInt(form.pad.value)
+  if(pad < 0) pad = 0
+  if(pad > 3) pad = 3
+
+  let rad = parseFloat(form.rad.value)
+  if(rad < 1000) rad = 1000
+  if(rad > 6372798.2) rad = 6372798.2
+
+  let elev = parseFloat(form.elev.value)
+  if(elev<0) elev=0
+  if(elev>99999) elev=99999
+
+  let args = {lat:lat, lon:lon, lod:lod, str:str, pad:pad, rad:rad, elev:elev }
+
+  let url = window.location.href + "/?" + Object.entries(args).map(([k,v]) => `${k}=${v}`).join('&')
+
+  let a = document.createElement('a')
+  a.appendChild(document.createTextNode(url))
+  a.title = a.href = url
+  document.body.appendChild(a)
+
+}
+
+</script>
+

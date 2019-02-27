@@ -1,22 +1,22 @@
-Server side tile generation test.
+Server side tile generator based on aterrain
 
-Build
+#Build
 
 npm run compile
 or
 ./node_modules/.bin/babel src --out-dir build --presets=@babel/env
 
-Run
+#Run
 
 npm start
 
+Visit the web page with a browser - now you can manually produce tile area gltfs
 
-Note
+#Note
 
  - must use cesium 1.53 due to a bug
  - must manually stuff const THREE = require('three') into node_modules/three-gltf-exporter/
- - Right now compile.bat uses babel by hand to generate the es5 files. This could all use cleaning up!
- - right now the tile is hardcoded - will listen to server params later
+ - There seems to be a bug with HUBS - I find that saving to Sketchfab first seems to clean up the data.
 
 If you take the sample gltf in this folder and throw it at a viewer you should see the below. An example viewer is at https://gltf-viewer.donmccurdy.com/ .
 

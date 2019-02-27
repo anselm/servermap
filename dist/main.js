@@ -29,7 +29,7 @@ var _require = require('vblob'),
 function gltf_export(_x) {
   return _gltf_export.apply(this, arguments);
 } ////////////////////////////////////////////////////////////////////////
-// a hardcoded example query
+// a helper to invoke aterrain
 ////////////////////////////////////////////////////////////////////////
 
 
@@ -101,87 +101,177 @@ function _gltf_export() {
   return _gltf_export.apply(this, arguments);
 }
 
-var data = {
-  //lat: 37.7983222,
-  lat: 36.1069652,
-  //lon: -122.3972797,
-  lon: -112.1129972,
-  lod: 14,
-  // desired level of detail - will compute itself if not specified
-  stretch: 1,
-  // how much to stetch space vertically
-  padding: 1,
-  // how many extra tiles to fetch around area of interest
-  elevation: 1,
-  radius: 100000,
-  // 6372798.2,
-  world_radius: 6372798.2,
-  url: "https://assets.agi.com/stk-terrain/v1/tilesets/world/tiles",
-  project: 0,
-  groundTexture: '',
-  building_url: 'https://mozilla.cesium.com/SanFranciscoGltf15',
-  building_flags: 2,
-  buildingTexture: ''
-};
+function aterrain_wrapper(_x2) {
+  return _aterrain_wrapper.apply(this, arguments);
+} ///////////////////////////////////////////////////////////////////////
+// example server to deal with client requests for tiles
+///////////////////////////////////////////////////////////////////////
 
-function test() {
-  return _test.apply(this, arguments);
-}
 
-function _test() {
-  _test = _asyncToGenerator(
+function _aterrain_wrapper() {
+  _aterrain_wrapper = _asyncToGenerator(
   /*#__PURE__*/
-  regeneratorRuntime.mark(function _callee2() {
-    var tileServer, scene, gltf, str;
+  regeneratorRuntime.mark(function _callee2(args) {
+    var data, lat, lon, lod, str, pad, elev, rad, tileServer, scene, gltf, json;
     return regeneratorRuntime.wrap(function _callee2$(_context2) {
       while (1) {
         switch (_context2.prev = _context2.next) {
           case 0:
-            _context2.next = 2;
+            // an aterrain request - which happens to be over the grand canyon
+            data = {
+              lat: 36.1069652,
+              lon: -112.1129972,
+              lod: 14,
+              // desired level of detail - will compute itself if not specified
+              stretch: 1,
+              // how much to stetch space vertically
+              padding: 1,
+              // how many extra tiles to fetch around area of interest
+              elevation: 1,
+              radius: 100000,
+              // 6372798.2,
+              world_radius: 6372798.2,
+              url: "https://assets.agi.com/stk-terrain/v1/tilesets/world/tiles",
+              project: 0,
+              groundTexture: '',
+              building_url: 'https://mozilla.cesium.com/SanFranciscoGltf15',
+              building_flags: 2,
+              buildingTexture: '' // inject the caller args into the aterrain request - with some error checking
+
+            };
+            lat = parseFloat(args.lat);
+            if (lat < -85) lat = -85;
+            if (lat > 85) lat = 95;
+            lon = parseFloat(args.lon);
+            if (lon < -180) lon = -180;
+            if (lon > 180) lon = 180;
+            lod = parseInt(args.lod);
+            if (lod < 1) lod = 1;
+            if (lod > 15) lod = 15;
+            str = parseInt(args.str);
+            if (str < 0.1) str = 0.1;
+            if (str > 10) str = 10;
+            pad = parseInt(args.pad);
+            if (pad < 0) pad = 0;
+            if (pad > 4) pad = 4;
+            elev = parseFloat(args.elev);
+            if (elev < 0) elev = 0;
+            if (elev > 99999) elev = 99999;
+            rad = parseFloat(args.rad);
+            if (rad < 1000) rad = 1000;
+            if (rad > 6372798.2) rad = 6372798.2;
+            data.lat = lat;
+            data.lon = lon;
+            data.lod = lod;
+            data.str = str;
+            data.padding = pad;
+            data.elevation = elev;
+            data.radius = rad; // start a tile server
+
+            _context2.next = 31;
             return new _TileServer.default();
 
-          case 2:
+          case 31:
             tileServer = _context2.sent;
-            _context2.next = 5;
+            _context2.next = 34;
             return tileServer.produceManyTiles(data);
 
-          case 5:
+          case 34:
             scene = _context2.sent;
-            _context2.next = 8;
+            _context2.next = 37;
             return gltf_export(scene);
 
-          case 8:
+          case 37:
             gltf = _context2.sent;
             // turn it into a string
-            str = JSON.stringify(gltf, null, 2); // dump it to fs
+            json = JSON.stringify(gltf, null, 2); // return the string representing the entirety of the data to the caller
 
-            _fs.default.writeFileSync("test.gltf", str);
+            return _context2.abrupt("return", json);
 
-            console.log("saved file as test.gltf");
-
-          case 12:
+          case 40:
           case "end":
             return _context2.stop();
         }
       }
     }, _callee2, this);
   }));
-  return _test.apply(this, arguments);
+  return _aterrain_wrapper.apply(this, arguments);
 }
-
-test(); ///////////////////////////////////////////////////////////////////////
-// example server to deal with client requests for tiles
-///////////////////////////////////////////////////////////////////////
 
 var http = require('http');
 
-var hostname = '127.0.0.1';
-var port = 3000;
-var server = http.createServer(function (req, res) {
-  res.statusCode = 200;
-  res.setHeader('Content-Type', 'text/plain');
-  res.end('Hello World\n');
+var urlhelper = require('url');
+
+var pathname = __dirname + "/../public/index.html";
+var index = 0;
+
+_fs.default.readFile(pathname, function (err, data) {
+  index = data;
 });
-server.listen(port, hostname, function () {
-  console.log("Server running at http://".concat(hostname, ":").concat(port, "/"));
-});
+
+function handleRequest(req, res) {
+  var url = urlhelper.parse(req.url, true);
+  console.log("Server :: got a request: " + url);
+
+  if (url.href.length < 2) {
+    // send the index.html page
+    res.writeHead(200, {
+      "Content-Type": "text/html"
+    });
+    res.write(index);
+    res.end();
+    return;
+  } else {
+    // pass the request to the map generator
+    send_map(url.query, res);
+  }
+}
+
+function send_map(_x3, _x4) {
+  return _send_map.apply(this, arguments);
+}
+
+function _send_map() {
+  _send_map = _asyncToGenerator(
+  /*#__PURE__*/
+  regeneratorRuntime.mark(function _callee3(query, res) {
+    var str;
+    return regeneratorRuntime.wrap(function _callee3$(_context3) {
+      while (1) {
+        switch (_context3.prev = _context3.next) {
+          case 0:
+            _context3.prev = 0;
+            _context3.next = 3;
+            return aterrain_wrapper(query);
+
+          case 3:
+            str = _context3.sent;
+            res.writeHead(200, {
+              "Content-Type": "model/gltf+json"
+            });
+            res.write(str);
+            res.end();
+            _context3.next = 14;
+            break;
+
+          case 9:
+            _context3.prev = 9;
+            _context3.t0 = _context3["catch"](0);
+            console.log(_context3.t0);
+            res.writeHead(400, {
+              "Content-Type": "text/plain"
+            });
+            res.end(_context3.t0);
+
+          case 14:
+          case "end":
+            return _context3.stop();
+        }
+      }
+    }, _callee3, this, [[0, 9]]);
+  }));
+  return _send_map.apply(this, arguments);
+}
+
+console.log("Server: listening");
+var server = http.createServer(handleRequest).listen(3000);

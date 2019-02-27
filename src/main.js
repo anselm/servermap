@@ -65,31 +65,49 @@ async function gltf_export(scene) {
 }
 
 ////////////////////////////////////////////////////////////////////////
-// a hardcoded example query
+// a helper to invoke aterrain
 ////////////////////////////////////////////////////////////////////////
 
 import TileServer from './TileServer.js';
 
-let data = {
-             //lat: 37.7983222,
-             lat: 36.1069652,
-             //lon: -122.3972797,
-             lon: -112.1129972,
-             lod: 14,                 // desired level of detail - will compute itself if not specified
-         stretch: 1,                  // how much to stetch space vertically
-         padding: 1,                  // how many extra tiles to fetch around area of interest
-       elevation: 1,
-          radius: 100000, // 6372798.2,
-    world_radius: 6372798.2,
-             url: "https://assets.agi.com/stk-terrain/v1/tilesets/world/tiles",
-         project: 0,
-   groundTexture: '',
-    building_url: 'https://mozilla.cesium.com/SanFranciscoGltf15',
-  building_flags: 2,
- buildingTexture: ''
-}
+async function aterrain_wrapper(args) {
 
-async function test() {
+  // an aterrain request - which happens to be over the grand canyon
+
+  let data = {
+               lat: 36.1069652,
+               lon: -112.1129972,
+               lod: 14,                 // desired level of detail - will compute itself if not specified
+           stretch: 1,                  // how much to stetch space vertically
+           padding: 1,                  // how many extra tiles to fetch around area of interest
+         elevation: 1,
+            radius: 100000, // 6372798.2,
+      world_radius: 6372798.2,
+               url: "https://assets.agi.com/stk-terrain/v1/tilesets/world/tiles",
+           project: 0,
+     groundTexture: '',
+      building_url: 'https://mozilla.cesium.com/SanFranciscoGltf15',
+    building_flags: 2,
+   buildingTexture: ''
+  }
+
+  // inject the caller args into the aterrain request - with some error checking
+
+  let lat = parseFloat(args.lat); if(lat<-85)lat=-85; if(lat>85)lat=95;
+  let lon = parseFloat(args.lon); if(lon<-180)lon=-180; if(lon>180)lon=180;
+  let lod = parseInt(args.lod); if(lod<1)lod=1;if(lod>15)lod=15;
+  let str = parseInt(args.str); if(str<0.1)str=0.1;if(str>10)str=10;
+  let pad = parseInt(args.pad); if(pad<0)pad=0;if(pad>4)pad=4;
+  let elev = parseFloat(args.elev); if(elev<0)elev=0; if(elev>99999)elev=99999;
+  let rad = parseFloat(args.rad); if(rad<1000)rad=1000; if(rad>6372798.2)rad=6372798.2;
+
+  data.lat = lat
+  data.lon = lon
+  data.lod = lod
+  data.str = str
+  data.padding = pad
+  data.elevation = elev
+  data.radius = rad
 
   // start a tile server
   let tileServer = await new TileServer()
@@ -101,33 +119,62 @@ async function test() {
   let gltf = await gltf_export(scene)
 
   // turn it into a string
-  let str = JSON.stringify( gltf, null, 2 );
+  let json = JSON.stringify( gltf, null, 2 );
 
-  // dump it to fs
-  fs.writeFileSync("test.gltf",str)
+  // return the string representing the entirety of the data to the caller
+  return json 
 
-  console.log("saved file as test.gltf")
+  // test: dump it to fs
+  // fs.writeFileSync("test.gltf",str)
+  // console.log("saved file as test.gltf")
 }
 
-test()
 
 ///////////////////////////////////////////////////////////////////////
 // example server to deal with client requests for tiles
 ///////////////////////////////////////////////////////////////////////
 
-const http = require('http');
+const http = require('http')
+const urlhelper = require('url')
 
-const hostname = '127.0.0.1';
-const port = 3000;
+let pathname = __dirname + "/../public/index.html"
+let index = 0
+fs.readFile(pathname, (err, data) => {
+  index = data
+})
 
-const server = http.createServer((req, res) => {
-  res.statusCode = 200;
-  res.setHeader('Content-Type', 'text/plain');
-  res.end('Hello World\n');
-});
+function handleRequest (req, res) {
+  var url = urlhelper.parse(req.url,true)
+  console.log("Server :: got a request: " + url)
+  if(url.href.length < 2) {
+    // send the index.html page
+    res.writeHead(200, {"Content-Type": "text/html" })
+    res.write(index)
+    res.end()
+    return
+  } else {
+    // pass the request to the map generator
+    send_map(url.query,res)
+  }
+}
 
-server.listen(port, hostname, () => {
-  console.log(`Server running at http://${hostname}:${port}/`);
-});
+async function send_map(query,res) {
+  try {
+    let str = await aterrain_wrapper(query)
+    res.writeHead(200,{
+      'Content-Type':'model/gltf+json',
+      'Content-Length':str.length',
+      'Content-Disposition':'attachment; filename=atterrain_map.gltf',
+    })
+    res.write(str)
+    res.end()
+  } catch(e) {
+    console.log(e)
+    res.writeHead(400, {"Content-Type": "text/plain"})
+    res.end(e)
+  }
+}
 
+console.log("Server: listening")
+let server = http.createServer(handleRequest).listen(3000)
 
