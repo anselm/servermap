@@ -60,6 +60,13 @@ async function gltf_export(scene) {
   // get gltf as a string
   let result = await gltfParsePromise(scene)
 
+  // undefine the things we defined so that cesium stops freaking out
+  delete(global.window)
+  delete(global.Blob)
+  delete(global.FileReader)
+  delete(global.THREE)
+  delete(global.document)
+
   // return gltf
   return result
 }
@@ -146,9 +153,6 @@ fs.readFile(pathname, (err, data) => {
 function handleRequest (req, res) {
   var url = urlhelper.parse(req.url,true)
   console.log("Server :: got a request: " + url)
-  console.log(url)
-  console.log(url.href)
-  console.log(url.query)
   if(url.href.length < 2) {
     // send the index.html page
     res.writeHead(200, {"Content-Type": "text/html" })

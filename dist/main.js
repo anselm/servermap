@@ -89,14 +89,21 @@ function _gltf_export() {
 
           case 10:
             result = _context.sent;
+            // undefine the things we defined so that cesium stops freaking out
+            delete global.window;
+            delete global.Blob;
+            delete global.FileReader;
+            delete global.THREE;
+            delete global.document; // return gltf
+
             return _context.abrupt("return", result);
 
-          case 12:
+          case 17:
           case "end":
             return _context.stop();
         }
       }
-    }, _callee, this);
+    }, _callee);
   }));
   return _gltf_export.apply(this, arguments);
 }
@@ -193,7 +200,7 @@ function _aterrain_wrapper() {
             return _context2.stop();
         }
       }
-    }, _callee2, this);
+    }, _callee2);
   }));
   return _aterrain_wrapper.apply(this, arguments);
 }
@@ -212,9 +219,6 @@ _fs.default.readFile(pathname, function (err, data) {
 function handleRequest(req, res) {
   var url = urlhelper.parse(req.url, true);
   console.log("Server :: got a request: " + url);
-  console.log(url);
-  console.log(url.href);
-  console.log(url.query);
 
   if (url.href.length < 2) {
     // send the index.html page
@@ -280,7 +284,7 @@ function _send_map() {
             return _context3.stop();
         }
       }
-    }, _callee3, this, [[0, 9]]);
+    }, _callee3, null, [[0, 9]]);
   }));
   return _send_map.apply(this, arguments);
 }

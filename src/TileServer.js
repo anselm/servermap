@@ -19,11 +19,13 @@ Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOi
 ///
 ////////////////////////////////////////////////////////////////////////////////////
 
+var sharedTerrainProvider = Cesium.createWorldTerrain() 
+
 class TileServer  {
 
   constructor() {
     let _constructionHelper = async () => {
-      this.terrainProvider = Cesium.createWorldTerrain()
+      this.terrainProvider = sharedTerrainProvider // Cesium.createWorldTerrain()
       await this.terrainProvider.readyPromise
       this.imageServer = await new ImageServer()
       return this

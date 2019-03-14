@@ -34,6 +34,8 @@ _cesium.default.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e
 ///
 ////////////////////////////////////////////////////////////////////////////////////
 
+var sharedTerrainProvider = _cesium.default.createWorldTerrain();
+
 var TileServer =
 /*#__PURE__*/
 function () {
@@ -52,7 +54,8 @@ function () {
           while (1) {
             switch (_context.prev = _context.next) {
               case 0:
-                _this.terrainProvider = _cesium.default.createWorldTerrain();
+                _this.terrainProvider = sharedTerrainProvider; // Cesium.createWorldTerrain()
+
                 _context.next = 3;
                 return _this.terrainProvider.readyPromise;
 
@@ -69,7 +72,7 @@ function () {
                 return _context.stop();
             }
           }
-        }, _callee, this);
+        }, _callee);
       }));
 
       return function _constructionHelper() {
