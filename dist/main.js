@@ -212,6 +212,9 @@ _fs.default.readFile(pathname, function (err, data) {
 function handleRequest(req, res) {
   var url = urlhelper.parse(req.url, true);
   console.log("Server :: got a request: " + url);
+  console.log(url);
+  console.log(url.href);
+  console.log(url.query);
 
   if (url.href.length < 2) {
     // send the index.html page
@@ -221,9 +224,16 @@ function handleRequest(req, res) {
     res.write(index);
     res.end();
     return;
-  } else {
+  } else if (parseFloat(url.query.rad ? url.query.rad : 0) > 1) {
     // pass the request to the map generator
     send_map(url.query, res);
+  } else {
+    res.writeHead(200, {
+      "Content-Type": "text/html"
+    });
+    res.write("Something is wrong with params");
+    res.end();
+    return;
   }
 }
 
