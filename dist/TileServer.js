@@ -91,17 +91,18 @@ function () {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
+                console.log("getting the ground");
                 if (lod > 15) lod = 15; // there are no tiles at some higher levels of detail
 
                 poi = _cesium.default.Cartographic.fromDegrees(lon, lat);
-                _context2.next = 4;
+                _context2.next = 5;
                 return _cesium.default.sampleTerrain(this.terrainProvider, lod, [poi]);
 
-              case 4:
+              case 5:
                 groundResults = _context2.sent;
                 return _context2.abrupt("return", groundResults[0].height);
 
-              case 6:
+              case 7:
               case "end":
                 return _context2.stop();
             }

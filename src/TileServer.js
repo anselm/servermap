@@ -32,6 +32,7 @@ class TileServer  {
   }
 
   async getGround(lat,lon,lod) {
+    console.log("getting the ground")
     if(lod > 15) lod = 15; // there are no tiles at some higher levels of detail
     let poi = Cesium.Cartographic.fromDegrees(lon,lat);
     let groundResults = await Cesium.sampleTerrain(this.terrainProvider,lod,[poi])
