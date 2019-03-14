@@ -162,9 +162,9 @@ async function send_map(query,res) {
   try {
     let str = await aterrain_wrapper(query)
     res.writeHead(200,{
-      'Content-Type':'model/gltf+json',
-      'Content-Length':str.length',
       'Content-Disposition':'attachment; filename=atterrain_map.gltf',
+      'Content-Type':'model/gltf+json',
+      'Content-Length':str.length
     })
     res.write(str)
     res.end()
@@ -175,6 +175,6 @@ async function send_map(query,res) {
   }
 }
 
-console.log("Server: listening")
+console.log("Server: listening!")
 let server = http.createServer(handleRequest).listen(3000)
 

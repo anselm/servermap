@@ -247,7 +247,9 @@ function _send_map() {
           case 3:
             str = _context3.sent;
             res.writeHead(200, {
-              "Content-Type": "model/gltf+json"
+              'Content-Disposition': 'attachment; filename=atterrain_map.gltf',
+              'Content-Type': 'model/gltf+json',
+              'Content-Length': str.length
             });
             res.write(str);
             res.end();
@@ -273,5 +275,5 @@ function _send_map() {
   return _send_map.apply(this, arguments);
 }
 
-console.log("Server: listening");
+console.log("Server: listening!");
 var server = http.createServer(handleRequest).listen(3000);

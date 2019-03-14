@@ -86,7 +86,7 @@ function build_url(form) {
 
   let args = {lat:lat, lon:lon, lod:lod, str:str, pad:pad, rad:rad, elev:elev }
 
-  let url = window.location.href + "/?" + Object.entries(args).map(([k,v]) => `${k}=${v}`).join('&')
+  let url = window.location.href + "?" + Object.entries(args).map(([k,v]) => `${k}=${v}`).join('&')
 
   let a = document.createElement('a')
   a.appendChild(document.createTextNode(url))
