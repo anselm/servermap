@@ -17,7 +17,10 @@ function _asyncToGenerator(fn) { return function () { var self = this, args = ar
 ////////////////////////////////////////////////////////////////////////////////////////
 // Forge support for canvas and a few basic services so that the THREE module works
 ////////////////////////////////////////////////////////////////////////////////////////
-// https://discourse.threejs.org/t/nodejs-threejs-gltfexporter-server-side-blob-issue/4040/5
+var UseBinaryFlag = false; // https://discourse.threejs.org/t/nodejs-threejs-gltfexporter-server-side-blob-issue/4040/5
+
+var atob = require('atob');
+
 var THREE = require('three');
 
 var Canvas = require('canvas');
@@ -25,6 +28,24 @@ var Canvas = require('canvas');
 var _require = require('vblob'),
     Blob = _require.Blob,
     FileReader = _require.FileReader;
+
+var toBlob = function toBlob(callback) {
+  var type = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "image/png";
+  var quality = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1;
+  var canvas = this;
+  var str = canvas.toDataURL(type, quality).split(',')[1];
+  var binStr = atob(str);
+  var len = binStr.length;
+  var arr = new Uint8Array(len);
+
+  for (var i = 0; i < len; i++) {
+    arr[i] = binStr.charCodeAt(i);
+  }
+
+  callback(new Blob([arr], {
+    type: type || 'image/png'
+  }));
+};
 
 function gltf_export(_x) {
   return _gltf_export.apply(this, arguments);
@@ -47,6 +68,8 @@ function _gltf_export() {
                 var gltf = new _threeGltfExporter.default();
                 gltf.parse(scene, function (result) {
                   resolve(result);
+                }, {
+                  binary: UseBinaryFlag
                 });
               });
             };
@@ -61,11 +84,9 @@ function _gltf_export() {
 
             global.document.createElement = function (nodeName) {
               if (nodeName !== 'canvas') throw new Error("Cannot create node ".concat(nodeName));
-              var canvas = Canvas.createCanvas(256, 256); // This isn't working — currently need to avoid toBlob(), so export to embedded .gltf not .glb.
-              // canvas.toBlob = function () {
-              //   return new Blob([this.toBuffer()]);
-              // };
-
+              var canvas = Canvas.createCanvas(256, 256);
+              var protos = Object.getPrototypeOf(canvas);
+              protos.toBlob = toBlob;
               return canvas;
             }; // rewrite all geometry for two bugs in exporter:
             // 1) exporer needs geometry userData to not be undefined
@@ -230,6 +251,7 @@ function handleRequest(req, res) {
     return;
   } else if (parseFloat(url.query.rad ? url.query.rad : 0) > 1) {
     // pass the request to the map generator
+    UseBinaryFlag = url.query.binary == "true" ? true : false;
     send_map(url.query, res);
   } else {
     res.writeHead(200, {
@@ -260,11 +282,21 @@ function _send_map() {
 
           case 3:
             str = _context3.sent;
-            res.writeHead(200, {
-              'Content-Disposition': 'attachment; filename=atterrain_map.gltf',
-              'Content-Type': 'model/gltf+json',
-              'Content-Length': str.length
-            });
+
+            if (!UseBinaryFlag) {
+              res.writeHead(200, {
+                'Content-Disposition': 'attachment; filename=atterrain_map.gltf',
+                'Content-Type': 'model/gltf+json',
+                'Content-Length': str.length
+              });
+            } else {
+              res.writeHead(200, {
+                'Content-Disposition': 'attachment; filename=atterrain_map.glb',
+                'Content-Type': 'model/gltf-binary',
+                'Content-Length': str.length
+              });
+            }
+
             res.write(str);
             res.end();
             _context3.next = 14;

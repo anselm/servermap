@@ -5,6 +5,7 @@
   "main": "dist/main.js",
   "dependencies": {
     "@babel/polyfill": "^7.2.5",
+    "atob": "^2.1.2",
     "blob": "^0.0.5",
     "canvas": "^2.3.1",
     "cesium": "1.53.0",

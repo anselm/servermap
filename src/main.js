@@ -2,17 +2,32 @@
 import "@babel/polyfill";
 import fs from "fs"
 
-
 ////////////////////////////////////////////////////////////////////////////////////////
 // Forge support for canvas and a few basic services so that the THREE module works
 ////////////////////////////////////////////////////////////////////////////////////////
 
+let UseBinaryFlag = false
+
 // https://discourse.threejs.org/t/nodejs-threejs-gltfexporter-server-side-blob-issue/4040/5
+
+var atob = require('atob');
  
 const THREE = require('three');
 const Canvas = require('canvas');
 const { Blob,FileReader } = require('vblob');
 import GLTFExporter from 'three-gltf-exporter';
+
+let toBlob = function (callback, type="image/png", quality = 1) {
+  let canvas = this
+  let str = canvas.toDataURL(type, quality).split(',')[1]
+  let binStr = atob(str)
+  let len = binStr.length
+  let arr = new Uint8Array(len)
+  for (var i = 0; i < len; i++ ) {
+    arr[i] = binStr.charCodeAt(i)
+  }
+  callback( new Blob( [arr], {type: type || 'image/png'} ) )
+}
 
 async function gltf_export(scene) {
 
@@ -25,11 +40,9 @@ async function gltf_export(scene) {
   if(!global.document) global.document = {}
   global.document.createElement = function(nodeName) {
     if (nodeName !== 'canvas') throw new Error(`Cannot create node ${nodeName}`)
-    const canvas = Canvas.createCanvas(256, 256)
-    // This isn't working — currently need to avoid toBlob(), so export to embedded .gltf not .glb.
-    // canvas.toBlob = function () {
-    //   return new Blob([this.toBuffer()]);
-    // };
+    let canvas = Canvas.createCanvas(256, 256)
+    let protos = Object.getPrototypeOf(canvas)
+    protos.toBlob = toBlob
     return canvas;
   }
 
@@ -53,7 +66,7 @@ async function gltf_export(scene) {
       let gltf = new GLTFExporter()
       gltf.parse(scene,function(result) {
         resolve(result)
-      })
+      },{binary:UseBinaryFlag})
     })
   }
 
@@ -161,6 +174,7 @@ function handleRequest (req, res) {
     return
   } else if(parseFloat(url.query.rad ? url.query.rad : 0) > 1) {
     // pass the request to the map generator
+    UseBinaryFlag = url.query.binary == "true" ? true : false
     send_map(url.query,res)
   } else {
     res.writeHead(200, {"Content-Type": "text/html" })
@@ -173,11 +187,19 @@ function handleRequest (req, res) {
 async function send_map(query,res) {
   try {
     let str = await aterrain_wrapper(query)
-    res.writeHead(200,{
-      'Content-Disposition':'attachment; filename=atterrain_map.gltf',
-      'Content-Type':'model/gltf+json',
-      'Content-Length':str.length
-    })
+    if(!UseBinaryFlag) {
+      res.writeHead(200,{
+        'Content-Disposition':'attachment; filename=atterrain_map.gltf',
+        'Content-Type':'model/gltf+json',
+        'Content-Length':str.length
+      })
+    } else {
+      res.writeHead(200,{
+        'Content-Disposition':'attachment; filename=atterrain_map.glb',
+        'Content-Type':'model/gltf-binary',
+        'Content-Length':str.length
+      })
+    }
     res.write(str)
     res.end()
   } catch(e) {

@@ -45,9 +45,19 @@
             <span class="pure-form-message-inline">Extra tiles around your center point</span>
         </div>
 
+        <div class="pure-control-group">
+            <label for="pad">Binary?</label>
+            <input type="checkbox" name="binary" value="true"></input>
+            <span class="pure-form-message-inline">Produce a binary GLB instead of a GLTF?</span>
+        </div>
+
+
         <div class="pure-controls">
             <button type="submit" class="pure-button pure-button-primary">Submit</button>
         </div>
+
+        <h2>Select Submit above to produce an URL that will produce a tile for you - try it out at <a href="https://gltf-viewer.donmccurdy.com/">Don McCurdy's GLTF Viewer</a></h2>
+        <h3 id="results"></h3>
 
     </fieldset>
 </form>
@@ -84,14 +94,21 @@ function build_url(form) {
   if(elev<0) elev=0
   if(elev>99999) elev=99999
 
-  let args = {lat:lat, lon:lon, lod:lod, str:str, pad:pad, rad:rad, elev:elev }
+  let binary = form.binary.checked ? true : false
+
+  let args = {lat:lat, lon:lon, lod:lod, str:str, pad:pad, rad:rad, elev:elev, binary:binary }
 
   let url = window.location.href + "?" + Object.entries(args).map(([k,v]) => `${k}=${v}`).join('&')
+
+  if(binary) url = url + "&cors=.glb";
+  else url = url + "&cors=.gltf"
 
   let a = document.createElement('a')
   a.appendChild(document.createTextNode(url))
   a.title = a.href = url
-  document.body.appendChild(a)
+  let results = document.getElementById("results")
+  while (results.firstChild) { results.removeChild(results.firstChild); }
+  results.appendChild(a)
 
 }
 
