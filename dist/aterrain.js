@@ -2,7 +2,7 @@
 
 var _TileServer = _interopRequireDefault(require("./TileServer.js"));
 
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
 
 if (typeof AFRAME === 'undefined') {
   throw new Error('Component attempted to register before AFRAME was available.');
@@ -20,13 +20,13 @@ AFRAME.registerComponent('a-terrain', {
     // TODO Earth is an oblate spheriod but I'm ignoring that fact... it could be improved.
     world_radius: {
       type: 'number',
-      default: 6372798.2
+      "default": 6372798.2
     },
     // Radius is the geometric half width or height (or distance from surface to the center) of entire planet in a-frame.
     // A user can use any radius and the planet will render correctly but at a radius == world_radius then the world is 1:1 with human scale walking and a-frame default camera setup
     radius: {
       type: 'number',
-      default: 6372798.2
+      "default": 6372798.2
     },
     // Observer
     // An observer may be null or may be a camera or other aframe 3d object with a position in 3d space that this component should watch
@@ -35,14 +35,14 @@ AFRAME.registerComponent('a-terrain', {
     // TODO note this is not considering the observers field of view yet and since tiles are logarithmic and movement is linear it requires some thought when using
     observer: {
       type: 'string',
-      default: ""
+      "default": ""
     },
     // follow mode (bit set)
     //   1 = move globe such that the current latitude, longitude are at 0,0,0 (only if the observer is null)
     //   2 = move globe elevation also (only if the observer is null)
     follow: {
       type: 'number',
-      default: 3
+      "default": 3
     },
     // Current latitude, longitude and elevation in meters - currently 600 meters above Cafe Coquetta on the Embarcadero next to the bay in San Francisco
     // Note elevation is NOT related to the rendering radius but is a planetary space value and should stay the same regardless of rendering radius
@@ -50,61 +50,61 @@ AFRAME.registerComponent('a-terrain', {
     // Note if the observer is set then these below values are ignored and they are dynamically manufactured by looking at observers relative position
     latitude: {
       type: 'number',
-      default: 37.7983222
+      "default": 37.7983222
     },
     longitude: {
       type: 'number',
-      default: -122.3972797
+      "default": -122.3972797
     },
     elevation: {
       type: 'number',
-      default: 600
+      "default": 600
     },
     // How much to stretch planet heights by so that mountains are more visible
     // TODO not fully implemented
     stretch: {
       type: 'number',
-      default: 1
+      "default": 1
     },
     // LOD = Level of detail. If not specified then it will be computed from elevation.
     lod: {
       type: 'number',
-      default: -1
+      "default": -1
     },
     input: {
       type: 'number',
-      default: 0
+      "default": 0
     },
     // fovpad is a hack to circumvent limits with observer field of view; basically a camera could be near the planet but see the whole planet at once
     // TODO the tilings strategy should be improved to deal with some of the possible cases of observer field of view - remove this fudge factor later
     fovpad: {
       type: 'number',
-      default: 0
+      "default": 0
     },
     debug: {
       type: 'number',
-      default: 0
+      "default": 0
     },
     url: {
       type: 'string',
-      default: "https://assets.agi.com/stk-terrain/v1/tilesets/world/tiles"
+      "default": "https://assets.agi.com/stk-terrain/v1/tilesets/world/tiles"
     },
     building_url: {
       type: 'string',
-      default: 'https://mozilla.cesium.com/SanFranciscoGltf15'
+      "default": 'https://mozilla.cesium.com/SanFranciscoGltf15'
     },
     //    building_url: {type: 'string', default: 'https://s3.amazonaws.com/cesium-dev/Mozilla/SanFranciscoGltf15Gz3' },
     building_flags: {
       type: 'number',
-      default: 2
+      "default": 2
     },
     buildingTexture: {
       type: 'string',
-      default: ''
+      "default": ''
     },
     groundTexture: {
       type: 'string',
-      default: ''
+      "default": ''
     }
   },
   ///
@@ -143,7 +143,7 @@ AFRAME.registerComponent('a-terrain', {
     // refine soon - TODO
     Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI4YzI5OGVlNy1jOWY2LTRjNmEtYWYzMC1iNzhkZDhkZmEwOWEiLCJpZCI6MTM2MCwiaWF0IjoxNTI4MTQ0MDMyfQ.itVtUPeeXb7dasKXTUYZ6r3Hbm7OVUoA26ahLaVyj5I';
 
-    _TileServer.default.instance().ready(this.data.url, function () {
+    _TileServer["default"].instance().ready(this.data.url, function () {
       console.log("Lower level TileServer is ready");
     });
   },
@@ -151,7 +151,7 @@ AFRAME.registerComponent('a-terrain', {
   /// tick at 60fps
   ///
   tick: function tick() {
-    if (!_TileServer.default.instance().isReady()) {
+    if (!_TileServer["default"].instance().isReady()) {
       return;
     } // Update level of detail based on viewing mode
 
@@ -199,7 +199,7 @@ AFRAME.registerComponent('a-terrain', {
 
       if (data.lod < 0 || data.lodLatch == 1) {
         data.lodLatch = 1;
-        data.lod = _TileServer.default.instance().elevation2lod(data.world_radius, data.elevation);
+        data.lod = _TileServer["default"].instance().elevation2lod(data.world_radius, data.elevation);
       }
     } else {
       // this is a slight hack to allow a caller to specify lat lon - it's not formally documented as a feature
@@ -254,10 +254,10 @@ AFRAME.registerComponent('a-terrain', {
 
       if (data.lod < 0 || data.lodLatch == 1) {
         data.lodLatch = 1;
-        data.lod = _TileServer.default.instance().elevation2lod(data.world_radius, data.elevation);
+        data.lod = _TileServer["default"].instance().elevation2lod(data.world_radius, data.elevation);
       }
 
-      _TileServer.default.instance().getGround(data.latitude, data.longitude, data.lod, data.url, function (groundValue) {
+      _TileServer["default"].instance().getGround(data.latitude, data.longitude, data.lod, data.url, function (groundValue) {
         // deal with undefined
         if (!groundValue) groundValue = 0; // make sure is above ground
 
@@ -277,7 +277,7 @@ AFRAME.registerComponent('a-terrain', {
     if (data.lat > 85) data.lat = 85;
     if (data.lat < -85) data.lat = -85; // ask tile server for facts about a given latitude, longitude, lod
 
-    var scheme = _TileServer.default.instance().scheme_elaborate(data); // the number of tiles to fetch in each direction is a function of the camera fov (45') and elevation over the size of a tile at current lod
+    var scheme = _TileServer["default"].instance().scheme_elaborate(data); // the number of tiles to fetch in each direction is a function of the camera fov (45') and elevation over the size of a tile at current lod
 
 
     var count = Math.floor(data.elevation / scheme.width_tile_lat) + 1; // render the field of view - TODO this strategy is not comprehensive - the camera can see past the visible tiles depending on FOV and if not looking down.
@@ -339,7 +339,7 @@ AFRAME.registerComponent('a-terrain', {
   /// Satisfy that a given tile exists from supplied lat,lon,elevation
   ///
   updateOrCreateTile: function updateOrCreateTile(data) {
-    var scheme = _TileServer.default.instance().scheme_elaborate(data);
+    var scheme = _TileServer["default"].instance().scheme_elaborate(data);
 
     var element = this.tiles[scheme.uuid];
 

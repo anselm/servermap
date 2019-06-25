@@ -3,13 +3,13 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.default = void 0;
+exports["default"] = void 0;
 
 var _ImageServer = _interopRequireDefault(require("./ImageServer.js"));
 
 var _cesium = _interopRequireDefault(require("cesium"));
 
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
 
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { Promise.resolve(value).then(_next, _throw); } }
 
@@ -23,7 +23,7 @@ function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _d
 
 var THREE = require('three');
 
-_cesium.default.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI4YzI5OGVlNy1jOWY2LTRjNmEtYWYzMC1iNzhkZDhkZmEwOWEiLCJpZCI6MTM2MCwiaWF0IjoxNTI4MTQ0MDMyfQ.itVtUPeeXb7dasKXTUYZ6r3Hbm7OVUoA26ahLaVyj5I'; ////////////////////////////////////////////////////////////////////////////////////
+_cesium["default"].Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI4YzI5OGVlNy1jOWY2LTRjNmEtYWYzMC1iNzhkZDhkZmEwOWEiLCJpZCI6MTM2MCwiaWF0IjoxNTI4MTQ0MDMyfQ.itVtUPeeXb7dasKXTUYZ6r3Hbm7OVUoA26ahLaVyj5I'; ////////////////////////////////////////////////////////////////////////////////////
 ///
 /// TileServer
 ///
@@ -34,7 +34,7 @@ _cesium.default.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e
 ///
 ////////////////////////////////////////////////////////////////////////////////////
 
-var sharedTerrainProvider = _cesium.default.createWorldTerrain();
+var sharedTerrainProvider = _cesium["default"].createWorldTerrain();
 
 var TileServer =
 /*#__PURE__*/
@@ -61,7 +61,7 @@ function () {
 
               case 3:
                 _context.next = 5;
-                return new _ImageServer.default();
+                return new _ImageServer["default"]();
 
               case 5:
                 _this.imageServer = _context.sent;
@@ -97,9 +97,9 @@ function () {
                 console.log("getting the ground");
                 if (lod > 15) lod = 15; // there are no tiles at some higher levels of detail
 
-                poi = _cesium.default.Cartographic.fromDegrees(lon, lat);
+                poi = _cesium["default"].Cartographic.fromDegrees(lon, lat);
                 _context2.next = 5;
-                return _cesium.default.sampleTerrain(this.terrainProvider, lod, [poi]);
+                return _cesium["default"].sampleTerrain(this.terrainProvider, lod, [poi]);
 
               case 5:
                 groundResults = _context2.sent;
@@ -643,4 +643,4 @@ function () {
 
 
 var _default = TileServer;
-exports.default = _default;
+exports["default"] = _default;

@@ -46,8 +46,8 @@ async function gltf_export(scene) {
     return canvas;
   }
 
-  // rewrite all geometry for two bugs in exporter:
-  // 1) exporer needs geometry userData to not be undefined
+  // now rewrite all geometry to avoid two bugs in gltf exporter itself:
+  // 1) explorer needs geometry userData to not be undefined
   // 2) can only deal with buffer geometry
   scene.traverse(node => {
     if (node instanceof THREE.Mesh ) {
@@ -70,10 +70,10 @@ async function gltf_export(scene) {
     })
   }
 
-  // get gltf as a string
+  // get gltf as an arraybuffer of uint8array 
   let result = await gltfParsePromise(scene)
 
-  // undefine the things we defined so that cesium stops freaking out
+  // undefine the things we defined to avoid polluting global namespace
   delete(global.window)
   delete(global.Blob)
   delete(global.FileReader)
@@ -92,7 +92,7 @@ import TileServer from './TileServer.js';
 
 async function aterrain_wrapper(args) {
 
-  // an aterrain request - which happens to be over the grand canyon
+  // an aterrain request - which happens to be over the grand canyon unless the user sets it elsewhere
 
   let data = {
                lat: 36.1069652,
@@ -135,18 +135,11 @@ async function aterrain_wrapper(args) {
   // get a 3js collection of some kind that contains 3js meshes
   let scene = await tileServer.produceManyTiles(data)
 
-  // make a gltf
-  let gltf = await gltf_export(scene)
+  // make a blob
+  let blob  = await gltf_export(scene)
 
-  // turn it into a string
-  let json = JSON.stringify( gltf, null, 2 );
-
-  // return the string representing the entirety of the data to the caller
-  return json 
-
-  // test: dump it to fs
-  // fs.writeFileSync("test.gltf",str)
-  // console.log("saved file as test.gltf")
+  // return uint8array or string
+  return blob
 }
 
 
@@ -157,13 +150,45 @@ async function aterrain_wrapper(args) {
 const http = require('http')
 const urlhelper = require('url')
 
+// cache the index.html
 let pathname = __dirname + "/../public/index.html"
 let index = 0
 fs.readFile(pathname, (err, data) => {
   index = data
 })
 
-function handleRequest (req, res) {
+// helper to write the blob back to client
+async function send_map(query,res) {
+  try {
+    let blob = await aterrain_wrapper(query)
+    if(!UseBinaryFlag) {
+      let str = JSON.stringify( blob, null, 2 );
+      res.writeHead(200,{
+        'Content-Disposition':'attachment; filename=atterrain_map.gltf',
+        'Content-Type':'model/gltf+json',
+        'Content-Length':str.length
+      })
+      res.write(str)
+      res.end()
+    } else {
+      let buf = new Buffer(blob)
+      res.writeHead(200,{
+        'Content-Disposition':'attachment; filename=atterrain_map.glb',
+        'Content-Type':'model/gltf-binary',
+        'Content-Length':buf.length
+      })
+      res.write(buf)
+      res.end()
+    }
+  } catch(e) {
+    console.log(e)
+    res.writeHead(400, {"Content-Type": "text/plain"})
+    res.end(e)
+  }
+}
+
+// catch request
+function handleAllRequests(req, res) {
   var url = urlhelper.parse(req.url,true)
   console.log("Server :: got a request: " + url)
   if(url.href.length < 2) {
@@ -184,31 +209,7 @@ function handleRequest (req, res) {
   }
 }
 
-async function send_map(query,res) {
-  try {
-    let str = await aterrain_wrapper(query)
-    if(!UseBinaryFlag) {
-      res.writeHead(200,{
-        'Content-Disposition':'attachment; filename=atterrain_map.gltf',
-        'Content-Type':'model/gltf+json',
-        'Content-Length':str.length
-      })
-    } else {
-      res.writeHead(200,{
-        'Content-Disposition':'attachment; filename=atterrain_map.glb',
-        'Content-Type':'model/gltf-binary',
-        'Content-Length':str.length
-      })
-    }
-    res.write(str)
-    res.end()
-  } catch(e) {
-    console.log(e)
-    res.writeHead(400, {"Content-Type": "text/plain"})
-    res.end(e)
-  }
-}
-
+// start
 console.log("Server: listening!")
-let server = http.createServer(handleRequest).listen(3000)
+let server = http.createServer(handleAllRequests).listen(3000)
 

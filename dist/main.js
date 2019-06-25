@@ -8,7 +8,7 @@ var _threeGltfExporter = _interopRequireDefault(require("three-gltf-exporter"));
 
 var _TileServer = _interopRequireDefault(require("./TileServer.js"));
 
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
 
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { Promise.resolve(value).then(_next, _throw); } }
 
@@ -65,7 +65,7 @@ function _gltf_export() {
           case 0:
             gltfParsePromise = function _ref(scene) {
               return new Promise(function (resolve, reject) {
-                var gltf = new _threeGltfExporter.default();
+                var gltf = new _threeGltfExporter["default"]();
                 gltf.parse(scene, function (result) {
                   resolve(result);
                 }, {
@@ -88,8 +88,8 @@ function _gltf_export() {
               var protos = Object.getPrototypeOf(canvas);
               protos.toBlob = toBlob;
               return canvas;
-            }; // rewrite all geometry for two bugs in exporter:
-            // 1) exporer needs geometry userData to not be undefined
+            }; // now rewrite all geometry to avoid two bugs in gltf exporter itself:
+            // 1) explorer needs geometry userData to not be undefined
             // 2) can only deal with buffer geometry
 
 
@@ -110,7 +110,7 @@ function _gltf_export() {
 
           case 10:
             result = _context.sent;
-            // undefine the things we defined so that cesium stops freaking out
+            // undefine the things we defined to avoid polluting global namespace
             delete global.window;
             delete global.Blob;
             delete global.FileReader;
@@ -140,12 +140,12 @@ function _aterrain_wrapper() {
   _aterrain_wrapper = _asyncToGenerator(
   /*#__PURE__*/
   regeneratorRuntime.mark(function _callee2(args) {
-    var data, lat, lon, lod, str, pad, elev, rad, tileServer, scene, gltf, json;
+    var data, lat, lon, lod, str, pad, elev, rad, tileServer, scene, blob;
     return regeneratorRuntime.wrap(function _callee2$(_context2) {
       while (1) {
         switch (_context2.prev = _context2.next) {
           case 0:
-            // an aterrain request - which happens to be over the grand canyon
+            // an aterrain request - which happens to be over the grand canyon unless the user sets it elsewhere
             data = {
               lat: 36.1069652,
               lon: -112.1129972,
@@ -197,7 +197,7 @@ function _aterrain_wrapper() {
             data.radius = rad; // start a tile server
 
             _context2.next = 31;
-            return new _TileServer.default();
+            return new _TileServer["default"]();
 
           case 31:
             tileServer = _context2.sent;
@@ -210,13 +210,10 @@ function _aterrain_wrapper() {
             return gltf_export(scene);
 
           case 37:
-            gltf = _context2.sent;
-            // turn it into a string
-            json = JSON.stringify(gltf, null, 2); // return the string representing the entirety of the data to the caller
+            blob = _context2.sent;
+            return _context2.abrupt("return", blob);
 
-            return _context2.abrupt("return", json);
-
-          case 40:
+          case 39:
           case "end":
             return _context2.stop();
         }
@@ -228,16 +225,81 @@ function _aterrain_wrapper() {
 
 var http = require('http');
 
-var urlhelper = require('url');
+var urlhelper = require('url'); // cache the index.html
+
 
 var pathname = __dirname + "/../public/index.html";
 var index = 0;
 
-_fs.default.readFile(pathname, function (err, data) {
+_fs["default"].readFile(pathname, function (err, data) {
   index = data;
-});
+}); // helper to write the blob back to client
 
-function handleRequest(req, res) {
+
+function send_map(_x3, _x4) {
+  return _send_map.apply(this, arguments);
+} // catch request
+
+
+function _send_map() {
+  _send_map = _asyncToGenerator(
+  /*#__PURE__*/
+  regeneratorRuntime.mark(function _callee3(query, res) {
+    var blob, str, buf;
+    return regeneratorRuntime.wrap(function _callee3$(_context3) {
+      while (1) {
+        switch (_context3.prev = _context3.next) {
+          case 0:
+            _context3.prev = 0;
+            _context3.next = 3;
+            return aterrain_wrapper(query);
+
+          case 3:
+            blob = _context3.sent;
+
+            if (!UseBinaryFlag) {
+              str = JSON.stringify(blob, null, 2);
+              res.writeHead(200, {
+                'Content-Disposition': 'attachment; filename=atterrain_map.gltf',
+                'Content-Type': 'model/gltf+json',
+                'Content-Length': str.length
+              });
+              res.write(str);
+              res.end();
+            } else {
+              buf = new Buffer(blob);
+              res.writeHead(200, {
+                'Content-Disposition': 'attachment; filename=atterrain_map.glb',
+                'Content-Type': 'model/gltf-binary',
+                'Content-Length': buf.length
+              });
+              res.write(buf);
+              res.end();
+            }
+
+            _context3.next = 12;
+            break;
+
+          case 7:
+            _context3.prev = 7;
+            _context3.t0 = _context3["catch"](0);
+            console.log(_context3.t0);
+            res.writeHead(400, {
+              "Content-Type": "text/plain"
+            });
+            res.end(_context3.t0);
+
+          case 12:
+          case "end":
+            return _context3.stop();
+        }
+      }
+    }, _callee3, null, [[0, 7]]);
+  }));
+  return _send_map.apply(this, arguments);
+}
+
+function handleAllRequests(req, res) {
   var url = urlhelper.parse(req.url, true);
   console.log("Server :: got a request: " + url);
 
@@ -261,65 +323,8 @@ function handleRequest(req, res) {
     res.end();
     return;
   }
-}
+} // start
 
-function send_map(_x3, _x4) {
-  return _send_map.apply(this, arguments);
-}
-
-function _send_map() {
-  _send_map = _asyncToGenerator(
-  /*#__PURE__*/
-  regeneratorRuntime.mark(function _callee3(query, res) {
-    var str;
-    return regeneratorRuntime.wrap(function _callee3$(_context3) {
-      while (1) {
-        switch (_context3.prev = _context3.next) {
-          case 0:
-            _context3.prev = 0;
-            _context3.next = 3;
-            return aterrain_wrapper(query);
-
-          case 3:
-            str = _context3.sent;
-
-            if (!UseBinaryFlag) {
-              res.writeHead(200, {
-                'Content-Disposition': 'attachment; filename=atterrain_map.gltf',
-                'Content-Type': 'model/gltf+json',
-                'Content-Length': str.length
-              });
-            } else {
-              res.writeHead(200, {
-                'Content-Disposition': 'attachment; filename=atterrain_map.glb',
-                'Content-Type': 'model/gltf-binary',
-                'Content-Length': str.length
-              });
-            }
-
-            res.write(str);
-            res.end();
-            _context3.next = 14;
-            break;
-
-          case 9:
-            _context3.prev = 9;
-            _context3.t0 = _context3["catch"](0);
-            console.log(_context3.t0);
-            res.writeHead(400, {
-              "Content-Type": "text/plain"
-            });
-            res.end(_context3.t0);
-
-          case 14:
-          case "end":
-            return _context3.stop();
-        }
-      }
-    }, _callee3, null, [[0, 9]]);
-  }));
-  return _send_map.apply(this, arguments);
-}
 
 console.log("Server: listening!");
-var server = http.createServer(handleRequest).listen(3000);
+var server = http.createServer(handleAllRequests).listen(3000);
