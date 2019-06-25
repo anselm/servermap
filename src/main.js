@@ -90,10 +90,24 @@ async function gltf_export(scene) {
 
 import TileServer from './TileServer.js';
 
+
+function encode(input,out="") {
+  for(let i = 0; i < input.length; i++ ) {
+    out += input.charCodeAt(i).toString(16)
+  }
+  return out
+}
+function decode(input,out="") {
+  for(let i = 0; i < input.length; i+=2 ) {
+    out += String.fromCharCode(parseInt(input.substr(i, 2), 16))
+  }
+  return out
+}
+
+
 async function aterrain_wrapper(args) {
 
-  // an aterrain request - which happens to be over the grand canyon unless the user sets it elsewhere
-
+  // this is a typical aterrain request - for a piece of the grand canyon
   let data = {
                lat: 36.1069652,
                lon: -112.1129972,
@@ -111,20 +125,42 @@ async function aterrain_wrapper(args) {
    buildingTexture: ''
   }
 
+  // values that this code is interested in changing
+
+  let lat = data.lat
+  let lon = data.lon
+  let lod = data.lod
+  let str = data.stretch
+  let pad = data.padding
+  let elev = data.elevation
+  let rad = data.radius
+
+  // a special option to circument some issues with hubs
+
+  if(args.blob) {
+    console.log("using blob")
+    let blob = decode(args.blob)
+    blob.split("&").forEach(part => {
+      let terms = part.split("=")
+      args[terms[0]]=terms[1]
+      console.log(terms[0] + " = " + terms[1] )
+    })
+  }
+
   // inject the caller args into the aterrain request - with some error checking
 
-  let lat = parseFloat(args.lat); if(lat<-85)lat=-85; if(lat>85)lat=95;
-  let lon = parseFloat(args.lon); if(lon<-180)lon=-180; if(lon>180)lon=180;
-  let lod = parseInt(args.lod); if(lod<1)lod=1;if(lod>15)lod=15;
-  let str = parseInt(args.str); if(str<0.1)str=0.1;if(str>10)str=10;
-  let pad = parseInt(args.pad); if(pad<0)pad=0;if(pad>4)pad=4;
-  let elev = parseFloat(args.elev); if(elev<0)elev=0; if(elev>99999)elev=99999;
-  let rad = parseFloat(args.rad); if(rad<1000)rad=1000; if(rad>6372798.2)rad=6372798.2;
+  if(args.lat !== undefined ) { lat = parseFloat(args.lat); if(lat<-85)lat=-85; if(lat>85)lat=95; }
+  if(args.lon !== undefined ) { lon = parseFloat(args.lon); if(lon<-180)lon=-180; if(lon>180)lon=180; }
+  if(args.lod !== undefined ) { lod = parseInt(args.lod); if(lod<1)lod=1;if(lod>15)lod=15; }
+  if(args.str !== undefined ) { str = parseInt(args.str); if(str<0.1)str=0.1;if(str>10)str=10; }
+  if(args.pad !== undefined ) { pad = parseInt(args.pad); if(pad<0)pad=0;if(pad>4)pad=4; }
+  if(args.elev !== undefined ) { elev = parseFloat(args.elev); if(elev<0)elev=0; if(elev>99999)elev=99999; }
+  if(args.rad !== undefined ) { rad = parseFloat(args.rad); if(rad<1000)rad=1000; if(rad>6372798)rad=6372798; }
 
   data.lat = lat
   data.lon = lon
   data.lod = lod
-  data.str = str
+  data.str = data.stretch = str
   data.padding = pad
   data.elevation = elev
   data.radius = rad

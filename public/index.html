@@ -64,6 +64,19 @@
 
 <script>
 
+function encode(input,out="") {
+  for(let i = 0; i < input.length; i++ ) {
+    out += input.charCodeAt(i).toString(16)
+  }
+  return out
+}
+function decode(input,out="") {
+  for(let i = 0; i < input.length; i+=2 ) {
+    out += String.fromCharCode(parseInt(input.substr(i, 2), 16))
+  }
+  return out
+}
+
 function build_url(form) {
 
   let lat = parseFloat(form.lat.value)
@@ -98,7 +111,11 @@ function build_url(form) {
 
   let args = {lat:lat, lon:lon, lod:lod, str:str, pad:pad, rad:rad, elev:elev, binary:binary }
 
-  let url = window.location.href + "?" + Object.entries(args).map(([k,v]) => `${k}=${v}`).join('&')
+  let params = Object.entries(args).map(([k,v]) => `${k}=${v}`).join('&')
+
+  let blob = encode(params) // there's a bug in some viewers that cannot deal with &
+
+  let url = window.location.href + "?" + "blob=" + encode(params) + "&" + params
 
   if(binary) url = url + "&cors=.glb";
   else url = url + "&cors=.gltf"
