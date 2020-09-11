@@ -10,7 +10,7 @@
     "canvas": "^2.5.0",
     "cesium": "1.53.0",
     "fs": "0.0.1-security",
-    "node-fetch": "^2.6.0",
+    "node-fetch": "^2.6.1",
     "requirejs": "^2.3.6",
     "sampleterrain": "^1.0.5",
     "three": "^0.101.1",
