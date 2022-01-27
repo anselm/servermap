@@ -13,7 +13,7 @@
     "node-fetch": "^2.6.0",
     "requirejs": "^2.3.6",
     "sampleterrain": "^1.0.5",
-    "three": "^0.101.1",
+    "three": "^0.137.0",
     "three-gltf-exporter": "^0.0.1",
     "three-gltf-loader": "^1.105.0",
     "vblob": "^1.0.2"
